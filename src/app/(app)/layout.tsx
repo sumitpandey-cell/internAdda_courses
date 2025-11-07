@@ -10,6 +10,7 @@ import {
   User,
   Settings,
   LogOut,
+  GraduationCap,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -45,6 +46,7 @@ const navItems = [
   { href: '/recommendations', icon: Bot, label: 'AI Recommendations' },
 ];
 
+const instructorNavItems = [{ href: '/instructor', icon: GraduationCap, label: 'Instructor' }];
 const adminNavItems = [{ href: '/admin', icon: Shield, label: 'Admin Panel' }];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -73,7 +75,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   const pageTitle =
-    [...navItems, ...adminNavItems].find((item) => isActive(item.href))
+    [...navItems, ...adminNavItems, ...instructorNavItems].find((item) => isActive(item.href))
       ?.label || 'CourseFlow';
 
   if (isUserLoading) {
@@ -95,6 +97,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (isLessonPage) {
     return <main className="bg-background">{children}</main>;
   }
+
+  const isInstructor = userProfile?.role === 'Instructor' || userProfile?.role === 'Admin';
 
   return (
     <SidebarProvider>
@@ -124,11 +128,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
-          {(userProfile?.role === 'Admin' || userProfile?.role === 'Instructor') && (
+          {isInstructor && (
             <SidebarMenu>
               <SidebarMenuItem>
                 <hr className="my-2 border-border" />
               </SidebarMenuItem>
+              {instructorNavItems.map((item) => (
+                 <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.href)}
+                    tooltip={{ children: item.label }}
+                  >
+                    <Link href={item.href}>
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
               {userProfile?.role === 'Admin' && adminNavItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
