@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronLeft, ChevronRight, CheckCircle, FileText, Video, BookText } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle, FileText, Video, BookText, PanelLeft } from "lucide-react";
 
 type LessonPageProps = {
   params: {
@@ -26,11 +26,20 @@ export default function LessonPage({ params }: LessonPageProps) {
   const nextLesson = lessonIndex < course.lessons.length - 1 ? course.lessons[lessonIndex + 1] : null;
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 h-[calc(100vh-theme(spacing.14)-2*theme(spacing.6))]">
+    <div className="flex flex-col md:flex-row gap-6 h-[calc(100vh-2*theme(spacing.6))]">
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <h1 className="text-3xl font-bold font-headline mb-4">{lesson.title}</h1>
+        
+        <div className="flex items-center justify-between mb-4">
+            <Button variant="outline" asChild>
+                <Link href={`/courses/${course.id}`}>
+                    <ChevronLeft className="mr-2 h-4 w-4" />
+                    Back to Course
+                </Link>
+            </Button>
+            <h1 className="text-3xl font-bold font-headline text-center">{lesson.title}</h1>
+            <div></div>
+        </div>
           
           {lesson.type === "video" ? (
             <div className="flex-1 flex flex-col overflow-hidden space-y-4">
@@ -65,8 +74,6 @@ export default function LessonPage({ params }: LessonPageProps) {
                 </CardContent>
              </Card>
           )}
-
-        </div>
 
         <div className="flex justify-between items-center mt-4 pt-4 border-t flex-shrink-0">
           {prevLesson ? (
@@ -112,6 +119,7 @@ export default function LessonPage({ params }: LessonPageProps) {
                             <div className={`flex items-center gap-3 p-2 rounded-md transition-colors ${l.id === lesson.id ? 'bg-primary/10 text-primary' : 'hover:bg-muted/50'}`}>
                                 {l.type === 'video' ? <Video className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
                                 <span className="text-sm truncate">{l.title}</span>
+                                {l.id === lesson.id && <CheckCircle className="h-4 w-4 ml-auto text-primary" />}
                             </div>
                         </Link>
                     </li>

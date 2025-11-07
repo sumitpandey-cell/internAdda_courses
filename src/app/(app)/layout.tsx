@@ -48,6 +48,10 @@ const adminNavItems = [
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
 
+    const pathSegments = pathname.split('/').filter(Boolean);
+    const isLessonPage = pathSegments.length === 3 && pathSegments[0] === 'courses';
+
+
     const isActive = (path: string) => {
         if (path === '/courses' && (pathname.startsWith('/courses/') || pathname === '/courses')) return true;
         if (path !== '/courses' && path !== '/dashboard') return pathname.startsWith(path);
@@ -55,6 +59,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     };
     
     const pageTitle = [...navItems, ...adminNavItems].find(item => isActive(item.href))?.label || "CourseFlow";
+
+    if (isLessonPage) {
+        return (
+             <main className="flex-1 p-4 sm:p-6 overflow-auto bg-background">
+                {children}
+            </main>
+        )
+    }
 
     return (
         <SidebarProvider>
