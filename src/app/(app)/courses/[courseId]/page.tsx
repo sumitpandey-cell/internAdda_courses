@@ -64,7 +64,7 @@ export default function CoursePage() {
                 <Badge variant="outline">{course?.difficulty}</Badge>
               </div>
               <div className="flex gap-2">
-                {course?.tags.map((tag) => <Badge key={tag} variant="secondary">{tag}</Badge>)}
+                {course?.tags?.map((tag) => <Badge key={tag} variant="secondary">{tag}</Badge>)}
               </div>
             </>
           )}
