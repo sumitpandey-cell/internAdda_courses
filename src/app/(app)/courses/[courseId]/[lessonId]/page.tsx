@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, use } from 'react';
+import { useState } from 'react';
 import { notFound, useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { courses, mainUser } from '@/lib/data';
@@ -25,16 +25,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
-type LessonPageProps = {
-  params: {
-    courseId: string;
-    lessonId: string;
-  };
-};
-
-export default function LessonPage({ params }: LessonPageProps) {
+export default function LessonPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const router = useRouter();
+  const params = useParams<{ courseId: string; lessonId: string }>();
+  
   const course = courses.find((c) => c.id === params.courseId);
   if (!course) notFound();
 
