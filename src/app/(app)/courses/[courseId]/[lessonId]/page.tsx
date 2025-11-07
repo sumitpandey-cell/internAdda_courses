@@ -4,7 +4,7 @@ import { courses } from "@/lib/data";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight, CheckCircle, FileText, Video } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle, FileText, Video, BookText } from "lucide-react";
 
 type LessonPageProps = {
   params: {
@@ -32,15 +32,30 @@ export default function LessonPage({ params }: LessonPageProps) {
           <h1 className="text-3xl font-bold font-headline">{lesson.title}</h1>
           
           {lesson.type === "video" ? (
-            <div className="aspect-video rounded-lg overflow-hidden">
-              <iframe
-                className="w-full h-full"
-                src={`https://www.youtube.com/embed/${lesson.content}`}
-                title="YouTube video player"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              ></iframe>
+            <div className="space-y-4">
+                <div className="aspect-video rounded-lg overflow-hidden">
+                <iframe
+                    className="w-full h-full"
+                    src={`https://www.youtube.com/embed/${lesson.content}`}
+                    title="YouTube video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                ></iframe>
+                </div>
+                {lesson.transcript && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <BookText className="h-6 w-6" />
+                                Transcript
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="prose dark:prose-invert max-w-none">
+                            <p>{lesson.transcript}</p>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
           ) : (
              <Card>
