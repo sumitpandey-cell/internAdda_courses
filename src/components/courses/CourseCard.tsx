@@ -1,6 +1,6 @@
-import Image from "next/image";
-import Link from "next/link";
-import type { Course } from "@/lib/data";
+import Image from 'next/image';
+import Link from 'next/link';
+import type { Course } from '@/lib/data-types';
 import {
   Card,
   CardContent,
@@ -8,10 +8,10 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { ArrowRight } from 'lucide-react';
 
 type CourseCardProps = {
   course: Course;

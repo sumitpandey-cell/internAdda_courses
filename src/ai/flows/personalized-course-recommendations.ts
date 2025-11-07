@@ -14,7 +14,8 @@ import {z} from 'genkit';
 const PersonalizedCourseRecommendationsInputSchema = z.object({
   userId: z.string().describe('The ID of the user to generate recommendations for.'),
   enrollmentHistory: z.array(z.string()).describe('An array of course IDs the user is enrolled in.'),
-  preferences: z.string().describe('A string containing the user\u2019s learning preferences.'),
+  preferences: z.string().describe('A string containing the user’s learning preferences.'),
+  allCourseIds: z.array(z.string()).describe('A list of all available course IDs for the AI to choose from.'),
 });
 export type PersonalizedCourseRecommendationsInput = z.infer<typeof PersonalizedCourseRecommendationsInputSchema>;
 
@@ -38,8 +39,10 @@ const prompt = ai.definePrompt({
 User ID: {{{userId}}}
 Enrollment History: {{#each enrollmentHistory}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
 Learning Preferences: {{{preferences}}}
+Available Courses: {{#each allCourseIds}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
 
-Based on this information, recommend courses that the user might be interested in. Only return the IDs of the courses. Enclose the list of course IDs in an array.
+
+Based on this information, recommend courses that the user might be interested in. Only return the IDs of the courses from the "Available Courses" list. Enclose the list of course IDs in an array.
 `,
 });
 

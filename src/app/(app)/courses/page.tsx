@@ -1,32 +1,42 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { courses } from "@/lib/data";
-import { CourseCard } from "@/components/courses/CourseCard";
-import { Input } from "@/components/ui/input";
+import { useState } from 'react';
+import { CourseCard } from '@/components/courses/CourseCard';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Search } from "lucide-react";
-
-const categories = ["All", ...new Set(courses.map((c) => c.category))];
-const difficulties = ["All", "Beginner", "Intermediate", "Advanced"];
+} from '@/components/ui/select';
+import { Search } from 'lucide-react';
+import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
+import type { Course } from '@/lib/data-types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function CoursesPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [category, setCategory] = useState("All");
-  const [difficulty, setDifficulty] = useState("All");
+  const { firestore } = useFirebase();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [category, setCategory] = useState('All');
+  const [difficulty, setDifficulty] = useState('All');
 
-  const filteredCourses = courses.filter((course) => {
+  const coursesQuery = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, 'courses')) : null),
+    [firestore]
+  );
+  const { data: courses, isLoading } = useCollection<Course>(coursesQuery);
+
+  const categories = ['All', ...new Set(courses?.map((c) => c.category) || [])];
+  const difficulties = ['All', 'Beginner', 'Intermediate', 'Advanced'];
+
+  const filteredCourses = courses?.filter((course) => {
     return (
       (course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         course.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      (category === "All" || course.category === category) &&
-      (difficulty === "All" || course.difficulty === difficulty)
+      (category === 'All' || course.category === category) &&
+      (difficulty === 'All' || course.difficulty === difficulty)
     );
   });
 
@@ -69,16 +79,38 @@ export default function CoursesPage() {
           </Select>
         </div>
       </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filteredCourses.map((course) => (
-          <CourseCard key={course.id} course={course} />
-        ))}
-      </div>
-      {filteredCourses.length === 0 && (
-        <div className="text-center py-12 text-muted-foreground">
-          No courses found. Try adjusting your filters.
+      {isLoading ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {[...Array(8)].map((_, i) => (
+            <CardSkeleton key={i} />
+          ))}
         </div>
+      ) : (
+        <>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filteredCourses?.map((course) => (
+              <CourseCard key={course.id} course={course} />
+            ))}
+          </div>
+          {filteredCourses?.length === 0 && (
+            <div className="text-center py-12 text-muted-foreground">
+              No courses found. Try adjusting your filters.
+            </div>
+          )}
+        </>
       )}
+    </div>
+  );
+}
+
+function CardSkeleton() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-40 w-full" />
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+      </div>
     </div>
   );
 }

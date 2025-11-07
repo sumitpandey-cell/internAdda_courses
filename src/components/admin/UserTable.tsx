@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import * as React from "react";
+import * as React from 'react';
 import {
   Table,
   TableBody,
@@ -8,19 +8,21 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import type { User } from "@/lib/data";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { MoreHorizontal } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import type { UserProfile as User } from '@/lib/data-types';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
 
 type UserTableProps = {
   users: User[];
@@ -33,7 +35,7 @@ export function UserTable({ users }: UserTableProps) {
         <TableRow>
           <TableHead>User</TableHead>
           <TableHead>Role</TableHead>
-          <TableHead>Enrolled Courses</TableHead>
+          <TableHead>Email</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
@@ -43,12 +45,11 @@ export function UserTable({ users }: UserTableProps) {
             <TableCell>
               <div className="flex items-center gap-3">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                  <AvatarImage src={user.avatar || ''} alt={user.name} />
+                  <AvatarFallback>{user.name?.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div>
                   <div className="font-medium">{user.name}</div>
-                  <div className="text-sm text-muted-foreground">{user.email}</div>
                 </div>
               </div>
             </TableCell>
@@ -57,7 +58,7 @@ export function UserTable({ users }: UserTableProps) {
                 {user.role}
               </Badge>
             </TableCell>
-            <TableCell>{user.enrolledCourses.length}</TableCell>
+            <TableCell>{user.email}</TableCell>
             <TableCell className="text-right">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

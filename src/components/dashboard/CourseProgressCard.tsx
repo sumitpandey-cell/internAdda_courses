@@ -1,6 +1,6 @@
-import Link from "next/link";
-import Image from "next/image";
-import type { Course, UserProgress } from "@/lib/data";
+import Link from 'next/link';
+import Image from 'next/image';
+import type { Course, UserProgress } from '@/lib/data-types';
 import {
   Card,
   CardContent,
@@ -8,10 +8,10 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { PlayCircle } from "lucide-react";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { PlayCircle } from 'lucide-react';
 
 type CourseProgressCardProps = {
   course: Course;
@@ -19,7 +19,8 @@ type CourseProgressCardProps = {
 };
 
 export function CourseProgressCard({ course, progress }: CourseProgressCardProps) {
-  const lastLessonId = progress.lastLessonId || course.lessons[0]?.id;
+  // The first lesson needs to be fetched or known. For now, we link to the course.
+  const lastLessonId = progress.lastLessonId || 'lesson1'; // Fallback needed
 
   return (
     <Card className="flex flex-col h-full overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1">

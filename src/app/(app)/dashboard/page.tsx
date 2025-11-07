@@ -1,48 +1,69 @@
-import { CourseProgressCard } from "@/components/dashboard/CourseProgressCard";
-import { StatsCard } from "@/components/dashboard/StatsCard";
-import { mainUser, courses } from "@/lib/data";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Award, BookCopy, CheckCircle } from "lucide-react";
-import Link from "next/link";
+'use client';
+
+import { CourseProgressCard } from '@/components/dashboard/CourseProgressCard';
+import { StatsCard } from '@/components/dashboard/StatsCard';
+import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import type { Course, UserProgress } from '@/lib/data-types';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Award, BookCopy, CheckCircle } from 'lucide-react';
+import Link from 'next/link';
 
 export default function DashboardPage() {
-  const enrolledCourses = mainUser.enrolledCourses
-    .map((courseId) => courses.find((c) => c.id === courseId))
-    .filter((c) => c !== undefined);
+  const { firestore, user } = useFirebase();
 
-  const userProgress = mainUser.progress;
-
-  const ongoingCourses = enrolledCourses.filter(
-    (course) =>
-      userProgress.find((p) => p.courseId === course!.id)?.percentage! < 100
+  const progressQuery = useMemoFirebase(
+    () => (firestore && user ? query(collection(firestore, 'users', user.uid, 'progress')) : null),
+    [firestore, user]
   );
+  const { data: userProgress, isLoading: progressLoading } = useCollection<UserProgress>(progressQuery);
+
+  const enrolledCourseIds = userProgress?.map(p => p.courseId) || [];
+
+  const coursesQuery = useMemoFirebase(
+    () =>
+      firestore && enrolledCourseIds.length > 0
+        ? query(collection(firestore, 'courses'), where('id', 'in', enrolledCourseIds))
+        : null,
+    [firestore, enrolledCourseIds]
+  );
+  const { data: enrolledCourses, isLoading: coursesLoading } = useCollection<Course>(coursesQuery);
+
+  const ongoingCourses = enrolledCourses?.filter(
+    (course) => (userProgress?.find((p) => p.courseId === course!.id)?.percentage ?? 0) < 100
+  ) || [];
   
-  const completedCourses = enrolledCourses.filter(
-    (course) =>
-      userProgress.find((p) => p.courseId === course!.id)?.percentage === 100
-  );
+  const completedCourses = enrolledCourses?.filter(
+    (course) => (userProgress?.find((p) => p.courseId === course!.id)?.percentage ?? 0) === 100
+  ) || [];
 
   const totalCompleted = completedCourses.length;
   const totalInProgress = ongoingCourses.length;
-  const totalXP = userProgress.reduce((acc, p) => acc + (p.percentage * 10), 0);
+  const totalXP = userProgress?.reduce((acc, p) => acc + (p.percentage * 10), 0) || 0;
+  
+  const isLoading = progressLoading || coursesLoading;
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold font-headline">Welcome back, {mainUser.name.split(' ')[0]}!</h1>
+      <h1 className="text-3xl font-bold font-headline">
+        Welcome back, {user?.displayName?.split(' ')[0] || 'User'}!
+      </h1>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <StatsCard title="Courses in Progress" value={totalInProgress} icon={BookCopy} />
-        <StatsCard title="Courses Completed" value={totalCompleted} icon={CheckCircle} />
-        <StatsCard title="Total XP Earned" value={Math.round(totalXP)} icon={Award} />
+        <StatsCard title="Courses in Progress" value={isLoading ? '...' : totalInProgress} icon={BookCopy} />
+        <StatsCard title="Courses Completed" value={isLoading ? '...' : totalCompleted} icon={CheckCircle} />
+        <StatsCard title="Total XP Earned" value={isLoading ? '...' : Math.round(totalXP)} icon={Award} />
       </div>
 
       <div>
         <h2 className="text-2xl font-bold font-headline mb-4">In Progress</h2>
-        {ongoingCourses.length > 0 ? (
+        {isLoading ? (
+            <Card><CardContent className="p-6 text-center"><p>Loading your courses...</p></CardContent></Card>
+        ) : ongoingCourses.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {ongoingCourses.map((course) => (
-              <CourseProgressCard key={course!.id} course={course!} progress={userProgress.find(p => p.courseId === course!.id)!} />
+              <CourseProgressCard key={course!.id} course={course!} progress={userProgress?.find(p => p.courseId === course!.id)!} />
             ))}
           </div>
         ) : (
@@ -57,7 +78,9 @@ export default function DashboardPage() {
 
       <div>
         <h2 className="text-2xl font-bold font-headline mb-4">Completed</h2>
-        {completedCourses.length > 0 ? (
+         {isLoading ? (
+            <Card><CardContent className="p-6 text-center"><p>Loading your completed courses...</p></CardContent></Card>
+        ) : completedCourses.length > 0 ? (
           <Card>
             <CardContent className="p-4 space-y-2">
               {completedCourses.map((course) => (

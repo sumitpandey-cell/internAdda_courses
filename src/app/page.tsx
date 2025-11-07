@@ -1,12 +1,17 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { CourseCard } from '@/components/courses/CourseCard';
-import { courses } from '@/lib/data';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, CheckCircle } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, limit } from 'firebase/firestore';
+import type { Course } from '@/lib/data-types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const heroImage = PlaceHolderImages.find((img) => img.id === 'hero-1');
 
@@ -32,6 +37,13 @@ const testimonials = [
 ];
 
 export default function Home() {
+  const { firestore } = useFirebase();
+  const coursesQuery = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, 'courses'), limit(4)) : null),
+    [firestore]
+  );
+  const { data: courses, isLoading } = useCollection<Course>(coursesQuery);
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
@@ -121,11 +133,17 @@ export default function Home() {
                 Dive into our curated collection of courses designed to help you master new skills and advance your career.
               </p>
             </div>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-8">
-              {courses.slice(0, 4).map((course) => (
-                <CourseCard key={course.id} course={course} />
-              ))}
-            </div>
+            {isLoading ? (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-8">
+                {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-80 w-full" />)}
+              </div>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-8">
+                {courses?.map((course) => (
+                  <CourseCard key={course.id} course={course} />
+                ))}
+              </div>
+            )}
             <div className="mt-12 text-center">
               <Button size="lg" variant="outline" asChild>
                 <Link href="/courses">

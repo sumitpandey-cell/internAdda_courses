@@ -3,7 +3,15 @@
 import { useState } from 'react';
 import { notFound, useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { courses, mainUser } from '@/lib/data';
+import {
+  useFirebase,
+  useDoc,
+  useCollection,
+  useMemoFirebase,
+  updateDocumentNonBlocking,
+  setDocumentNonBlocking,
+} from '@/firebase';
+import { doc, collection, query, orderBy, where, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -24,198 +32,315 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
+import type { Course, Lesson, UserProgress, Note } from '@/lib/data-types';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function LessonPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const router = useRouter();
   const params = useParams<{ courseId: string; lessonId: string }>();
+  const { courseId, lessonId } = params;
+
+  const { firestore, user } = useFirebase();
+
+  // Memoize Firestore references
+  const courseRef = useMemoFirebase(
+    () => (firestore && courseId ? doc(firestore, 'courses', courseId) : null),
+    [firestore, courseId]
+  );
+  const lessonsQuery = useMemoFirebase(
+    () =>
+      firestore && courseId
+        ? query(collection(firestore, 'courses', courseId, 'lessons'), orderBy('order'))
+        : null,
+    [firestore, courseId]
+  );
+  const lessonRef = useMemoFirebase(
+    () => (firestore && courseId && lessonId ? doc(firestore, 'courses', courseId, 'lessons', lessonId) : null),
+    [firestore, courseId, lessonId]
+  );
+  const progressRef = useMemoFirebase(
+    () => (firestore && user ? doc(firestore, 'users', user.uid, 'progress', courseId) : null),
+    [firestore, user, courseId]
+  );
+  const notesQuery = useMemoFirebase(
+    () =>
+      firestore && user && lessonId
+        ? query(collection(firestore, 'users', user.uid, 'notes'), where('lessonId', '==', lessonId))
+        : null,
+    [firestore, user, lessonId]
+  );
   
-  const course = courses.find((c) => c.id === params.courseId);
-  if (!course) notFound();
+  // Fetch data using custom hooks
+  const { data: course, isLoading: courseLoading } = useDoc<Course>(courseRef);
+  const { data: lessons, isLoading: lessonsLoading } = useCollection<Lesson>(lessonsQuery);
+  const { data: lesson, isLoading: lessonLoading } = useDoc<Lesson>(lessonRef);
+  const { data: progress, isLoading: progressLoading } = useDoc<UserProgress>(progressRef);
+  const { data: notes, isLoading: notesLoading } = useCollection<Note>(notesQuery);
 
-  const lessonIndex = course.lessons.findIndex((l) => l.id === params.lessonId);
-  if (lessonIndex === -1) notFound();
+  const [noteContent, setNoteContent] = useState('');
 
-  const lesson = course.lessons[lessonIndex];
-  const prevLesson = lessonIndex > 0 ? course.lessons[lessonIndex - 1] : null;
-  const nextLesson =
-    lessonIndex < course.lessons.length - 1
-      ? course.lessons[lessonIndex + 1]
-      : null;
+  const lessonIndex = lessons?.findIndex((l) => l.id === lessonId) ?? -1;
 
-  const progress = mainUser.progress.find((p) => p.courseId === course.id);
-  const isCompleted = progress?.completedLessons.includes(lesson.id);
+  if (!courseLoading && !course) notFound();
+  if (!lessonLoading && !lesson) notFound();
+
+  const prevLesson = lessonIndex > 0 ? lessons?.[lessonIndex - 1] : null;
+  const nextLesson = lessons && lessonIndex < lessons.length - 1 ? lessons[lessonIndex + 1] : null;
+  
+  const isCompleted = progress?.completedLessons?.includes(lessonId);
+
+  const handleMarkComplete = () => {
+    if (!progressRef || !user || !lessons || !course) return;
+
+    const completedLessons = progress?.completedLessons || [];
+    let newCompletedLessons = [...completedLessons];
+
+    if (isCompleted) {
+      newCompletedLessons = newCompletedLessons.filter(id => id !== lessonId);
+    } else {
+      if (!newCompletedLessons.includes(lessonId)) {
+        newCompletedLessons.push(lessonId);
+      }
+    }
+    
+    const percentage = Math.round((newCompletedLessons.length / lessons.length) * 100);
+
+    const newProgress: UserProgress = {
+      courseId: course.id,
+      completedLessons: newCompletedLessons,
+      totalLessons: lessons.length,
+      percentage: percentage,
+      lastLessonId: lessonId,
+      userId: user.uid,
+    };
+    
+    setDocumentNonBlocking(progressRef, newProgress, { merge: true });
+    
+    if (nextLesson) {
+      router.push(`/courses/${courseId}/${nextLesson.id}`);
+    }
+  };
+
+  const handleSaveNote = () => {
+    if (!firestore || !user || !lessonId || !noteContent) return;
+    
+    // For this simplified example, we'll just create a new note every time.
+    // A more advanced implementation would update an existing note.
+    const noteRef = doc(collection(firestore, `users/${user.uid}/notes`));
+    setDocumentNonBlocking(noteRef, {
+      userId: user.uid,
+      lessonId,
+      content: noteContent,
+      timestamp: new Date(),
+    }, {});
+    setNoteContent('');
+  };
+
 
   return (
     <div
       className={cn(
-        "grid min-h-screen bg-background text-foreground transition-all duration-300",
-        isSidebarOpen ? "md:grid-cols-[350px_1fr]" : "md:grid-cols-[0px_1fr]"
+        'grid min-h-screen bg-background text-foreground transition-all duration-300',
+        isSidebarOpen ? 'md:grid-cols-[350px_1fr]' : 'md:grid-cols-[0px_1fr]'
       )}
     >
       {/* Left Sidebar */}
-      <aside className={cn("bg-card flex flex-col h-screen overflow-hidden transition-all duration-300", isSidebarOpen ? "w-[350px]" : "w-0")}>
+      <aside
+        className={cn(
+          'bg-card flex flex-col h-screen overflow-hidden transition-all duration-300',
+          isSidebarOpen ? 'w-[350px]' : 'w-0'
+        )}
+      >
         <ScrollArea className="flex-1">
-            <div className="p-6 border-b">
-                <Button
-                    variant="ghost"
-                    onClick={() => router.push(`/courses/${course.id}`)}
-                    className="mb-4"
-                >
-                    <ChevronLeft className="mr-2 h-4 w-4" />
-                    Back to Course
-                </Button>
-                <h1 className="text-xl font-bold font-headline">{course.title}</h1>
-                <div className="mt-4 space-y-2">
-                    <Progress value={progress?.percentage || 0} className="h-2" />
-                    <p className="text-xs text-muted-foreground">
+          <div className="p-6 border-b">
+            <Button
+              variant="ghost"
+              onClick={() => router.push(`/courses/${courseId}`)}
+              className="mb-4"
+            >
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              Back to Course
+            </Button>
+            {courseLoading ? (
+              <Skeleton className="h-7 w-3/4" />
+            ) : (
+              <h1 className="text-xl font-bold font-headline">{course?.title}</h1>
+            )}
+            <div className="mt-4 space-y-2">
+              {progressLoading ? (
+                <>
+                  <Skeleton className="h-2 w-full" />
+                  <Skeleton className="h-4 w-1/4" />
+                </>
+              ) : (
+                <>
+                  <Progress value={progress?.percentage || 0} className="h-2" />
+                  <p className="text-xs text-muted-foreground">
                     {Math.round(progress?.percentage || 0)}% complete
-                    </p>
-                </div>
+                  </p>
+                </>
+              )}
             </div>
-            <div className="p-6">
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <BookOpen className="h-5 w-5" />
-                    Course Content
-                </h2>
-                <Accordion
+          </div>
+          <div className="p-6">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <BookOpen className="h-5 w-5" />
+              Course Content
+            </h2>
+            {lessonsLoading ? (
+              <div className="space-y-2">
+                {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+              </div>
+            ) : (
+              <Accordion
                 type="single"
                 collapsible
                 className="w-full"
                 defaultValue={`item-${lessonIndex}`}
-                >
-                {course.lessons.map((l, index) => {
-                    const isLessonCompleted = progress?.completedLessons.includes(
-                    l.id
-                    );
-                    return (
+              >
+                {lessons?.map((l, index) => {
+                  const isLessonCompleted = progress?.completedLessons?.includes(l.id);
+                  return (
                     <AccordionItem key={l.id} value={`item-${index}`}>
-                        <AccordionTrigger
-                        className={l.id === lesson.id ? 'text-primary' : ''}
-                        >
+                      <AccordionTrigger
+                        className={l.id === lessonId ? 'text-primary' : ''}
+                      >
                         <Link
-                            href={`/courses/${course.id}/${l.id}`}
-                            className="flex items-center gap-3 w-full"
+                          href={`/courses/${courseId}/${l.id}`}
+                          className="flex items-center gap-3 w-full"
                         >
-                            {isLessonCompleted ? (
+                          {isLessonCompleted ? (
                             <CheckCircle className="h-5 w-5 text-green-500" />
-                            ) : (
+                          ) : (
                             <PlayCircle className="h-5 w-5 text-muted-foreground" />
-                            )}
-                            <span className="font-medium text-sm text-left">
+                          )}
+                          <span className="font-medium text-sm text-left">
                             {l.title}
-                            </span>
+                          </span>
                         </Link>
-                        </AccordionTrigger>
-                        <AccordionContent className="text-sm text-muted-foreground pl-10">
-                        {l.type === 'video'
-                            ? `Video - ${l.duration} min`
-                            : `Text - ${l.duration} min`}
-                        </AccordionContent>
+                      </AccordionTrigger>
+                      <AccordionContent className="text-sm text-muted-foreground pl-10">
+                        {l.type === 'video' ? `Video` : `Text`}
+                      </AccordionContent>
                     </AccordionItem>
-                    );
+                  );
                 })}
-                </Accordion>
-            </div>
+              </Accordion>
+            )}
+          </div>
         </ScrollArea>
       </aside>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col h-screen relative">
-         <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="absolute top-4 left-4 z-10 bg-background/50 backdrop-blur-sm"
-          >
-            <PanelLeft className="h-5 w-5" />
-          </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="absolute top-4 left-4 z-10 bg-background/50 backdrop-blur-sm"
+        >
+          <PanelLeft className="h-5 w-5" />
+        </Button>
         <ScrollArea className="flex-1">
-            <div className="flex-1 p-6 md:p-8 lg:p-12">
-            <div className="aspect-video rounded-lg overflow-hidden shadow-2xl bg-black mb-8">
-                {lesson.type === 'video' ? (
-                <iframe
+          <div className="flex-1 p-6 md:p-8 lg:p-12">
+            {lessonLoading ? (
+                <Skeleton className="aspect-video rounded-lg w-full mb-8" />
+            ) : (
+                <div className="aspect-video rounded-lg overflow-hidden shadow-2xl bg-black mb-8">
+                {lesson?.type === 'video' ? (
+                    <iframe
                     className="w-full h-full"
                     src={`https://www.youtube.com/embed/${lesson.content}`}
                     title="YouTube video player"
                     frameBorder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
-                ></iframe>
+                    ></iframe>
                 ) : (
-                <Card className="h-full w-full flex items-center justify-center">
+                    <Card className="h-full w-full flex items-center justify-center">
                     <CardContent className="p-6">
-                    <div className="prose dark:prose-invert max-w-none">
-                        {lesson.content}
-                    </div>
+                        <div className="prose dark:prose-invert max-w-none">
+                            {lesson?.content}
+                        </div>
                     </CardContent>
-                </Card>
+                    </Card>
                 )}
-            </div>
+                </div>
+            )}
 
             <Tabs defaultValue="transcript" className="w-full">
-                <TabsList>
+              <TabsList>
                 <TabsTrigger value="transcript">Transcript</TabsTrigger>
                 <TabsTrigger value="notes">Notes</TabsTrigger>
-                </TabsList>
-                <TabsContent value="transcript">
+              </TabsList>
+              <TabsContent value="transcript">
                 <Card>
-                    <CardContent className="p-6">
+                  <CardContent className="p-6">
                     <div className="prose dark:prose-invert max-w-none text-muted-foreground">
-                        <p>
-                        {lesson.transcript ||
-                            'No transcript available for this lesson.'}
-                        </p>
+                        {lessonLoading ? <Skeleton className="h-24 w-full" /> : <p>{lesson?.transcript || 'No transcript available for this lesson.'}</p>}
                     </div>
-                    </CardContent>
+                  </CardContent>
                 </Card>
-                </TabsContent>
-                <TabsContent value="notes">
+              </TabsContent>
+              <TabsContent value="notes">
                 <Card>
-                    <CardContent className="p-6">
-                    <div className="prose dark:prose-invert max-w-none text-muted-foreground">
-                        <p>
-                        This section can contain your personal notes, code
-                        snippets, and links to external resources to supplement
-                        the lesson.
-                        </p>
-                    </div>
-                    </CardContent>
+                  <CardContent className="p-6 space-y-4">
+                     <div className="prose dark:prose-invert max-w-none text-muted-foreground space-y-4">
+                        {notesLoading && <p>Loading notes...</p>}
+                        {notes?.map(note => (
+                          <div key={note.id} className="p-2 border rounded-md">
+                            <p>{note.content}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{new Date(note.timestamp.seconds * 1000).toLocaleString()}</p>
+                          </div>
+                        ))}
+                         {notes?.length === 0 && !notesLoading && <p>You haven't taken any notes for this lesson yet.</p>}
+                     </div>
+                    <Textarea 
+                      value={noteContent}
+                      onChange={(e) => setNoteContent(e.target.value)}
+                      placeholder="Take a note..."
+                      className="mt-4"
+                    />
+                    <Button onClick={handleSaveNote} disabled={!noteContent.trim()}>Save Note</Button>
+                  </CardContent>
                 </Card>
-                </TabsContent>
+              </TabsContent>
             </Tabs>
-            </div>
+          </div>
 
-            <div className="sticky bottom-0 bg-background/80 backdrop-blur-sm border-t p-4 flex flex-col items-center">
+          <div className="sticky bottom-0 bg-background/80 backdrop-blur-sm border-t p-4 flex flex-col items-center">
             <div className="w-full max-w-4xl flex justify-between items-center mb-4">
-                {prevLesson ? (
+              {prevLesson ? (
                 <Button variant="outline" asChild>
-                    <Link href={`/courses/${course.id}/${prevLesson.id}`}>
+                  <Link href={`/courses/${courseId}/${prevLesson.id}`}>
                     <ChevronLeft className="mr-2 h-4 w-4" /> Previous
-                    </Link>
+                  </Link>
                 </Button>
-                ) : (
+              ) : (
                 <div />
-                )}
-                {nextLesson ? (
+              )}
+              {nextLesson ? (
                 <Button variant="default" asChild>
-                    <Link href={`/courses/${course.id}/${nextLesson.id}`}>
+                  <Link href={`/courses/${courseId}/${nextLesson.id}`}>
                     Next Lesson <ChevronRight className="ml-2 h-4 w-4" />
-                    </Link>
+                  </Link>
                 </Button>
-                ) : (
+              ) : (
                 <div />
-                )}
+              )}
             </div>
             <Button
-                variant={isCompleted ? 'secondary' : 'outline'}
-                size="lg"
-                className="w-full max-w-sm"
+              variant={isCompleted ? 'secondary' : 'outline'}
+              size="lg"
+              className="w-full max-w-sm"
+              onClick={handleMarkComplete}
             >
-                <CheckCircle className="mr-2 h-5 w-5" />
-                {isCompleted ? 'Completed' : 'Mark as Complete'}
+              <CheckCircle className="mr-2 h-5 w-5" />
+              {isCompleted ? 'Completed' : 'Mark as Complete'}
             </Button>
-            </div>
+          </div>
         </ScrollArea>
       </main>
     </div>
