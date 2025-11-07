@@ -59,7 +59,8 @@ export default function RecommendationsPage() {
   async function onSubmit(values: z.infer<typeof recommendationsSchema>) {
     if (!user) return;
     setIsLoading(true);
-    setRecommendedCourseIds([]);
+    // Don't reset IDs here, so the old recommendations remain while loading new ones
+    // setRecommendedCourseIds([]); 
 
     const enrolledCourseIds = userProgress?.map(p => p.courseId) || [];
 
