@@ -43,7 +43,6 @@ import type { UserProfile } from '@/lib/data-types';
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/courses', icon: BookOpen, label: 'Courses' },
-  { href: '/recommendations', icon: Bot, label: 'AI Recommendations' },
 ];
 
 const instructorNavItems = [{ href: '/instructor', icon: GraduationCap, label: 'Instructor' }];

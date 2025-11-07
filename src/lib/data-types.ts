@@ -49,5 +49,4 @@ export interface ChatMessage {
   role: 'user' | 'model';
   content: string;
   recommendedCourseIds?: string[];
-  audioBase64?: string;
 }
