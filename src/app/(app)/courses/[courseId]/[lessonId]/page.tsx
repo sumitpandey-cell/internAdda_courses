@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { notFound, useRouter } from 'next/navigation';
+import { useState, use } from 'react';
+import { notFound, useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { courses, mainUser } from '@/lib/data';
 import { Button } from '@/components/ui/button';
