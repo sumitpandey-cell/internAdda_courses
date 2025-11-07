@@ -42,10 +42,10 @@ export async function getCourseRecommendations(
 ): Promise<CourseChatResponse & { audioBase64?: string }> {
   try {
     const result = await courseRecommendationFlow(input);
-    console.log(result)
+    
     if (!result.response) {
-      console.log(result.response)
-        return { ...result, response: "I'm sorry, I could not generate a response." };
+      console.log("AI did not return a response.", result);
+      return { ...result, response: "I'm sorry, I could not generate a response." };
     }
 
     // Generate audio from the text response
@@ -63,7 +63,7 @@ export async function getCourseRecommendations(
     });
 
     if (!media) {
-      console.log("No audio generated.")
+      console.log("No audio generated.");
       return result; // Return text response if audio generation fails
     }
 
@@ -94,7 +94,7 @@ const courseRecommendationFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-        const {output} = await ai.generate({
+      const { output } = await ai.generate({
         prompt: `You are a friendly and encouraging AI career guider on the CourseFlow platform. Your main purpose is to have a natural, supportive conversation with students about their career aspirations and learning paths.
 
 - Your primary role is to be a guide and a mentor, not just a course recommender. Engage in a normal, free-flowing conversation.
@@ -117,35 +117,37 @@ AVAILABLE COURSES:
 {{/each}}
 `,
         config: {
-            // Instruct the model to always return JSON
-            response: {
-                format: 'json',
-                schema: CourseChatResponseSchema
-            }
+          // Instruct the model to always return JSON
+          output: {
+            format: 'json',
+            schema: CourseChatResponseSchema,
+          },
         },
         context: {
-            message: input.message,
-            history: input.history,
-            availableCourses: input.availableCourses
+          message: input.message,
+          history: input.history,
+          availableCourses: input.availableCourses,
         },
-        });
+      });
 
-        if (!output) {
-            console.error("AI generation returned no output.");
-            return { response: "I'm sorry, I had trouble processing that request. Please try again." };
-        }
+      if (!output) {
+        console.error('AI generation returned no output.');
+        return { response: "I'm sorry, I had trouble processing that request. Please try again." };
+      }
 
-        // Safeguard to ensure IDs are valid
-        if (output.recommendedCourseIds) {
-            const allCourseIds = input.availableCourses.map(c => c.id);
-            output.recommendedCourseIds = output.recommendedCourseIds.filter(id => allCourseIds.includes(id));
-        }
+      // Safeguard to ensure IDs are valid
+      if (output.recommendedCourseIds) {
+        const allCourseIds = input.availableCourses.map((c) => c.id);
+        output.recommendedCourseIds = output.recommendedCourseIds.filter((id) =>
+          allCourseIds.includes(id)
+        );
+      }
 
-        return output;
-    } catch(e) {
-        console.error("Error within courseRecommendationFlow:", e);
-        // We throw the error here so it can be caught by the calling function `getCourseRecommendations`
-        throw e;
+      return output;
+    } catch (e) {
+      console.error('Error within courseRecommendationFlow:', e);
+      // We throw the error here so it can be caught by the calling function `getCourseRecommendations`
+      throw e;
     }
   }
 );
