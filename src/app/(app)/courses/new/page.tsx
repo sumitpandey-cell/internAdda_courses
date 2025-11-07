@@ -36,6 +36,7 @@ const lessonSchema = z.object({
   type: z.enum(['video', 'text']),
   content: z.string().min(1, 'Content is required.'),
   duration: z.coerce.number().min(1, 'Duration must be at least 1 minute.'),
+  transcript: z.string().optional(),
 });
 
 const courseSchema = z.object({
@@ -122,6 +123,7 @@ export default function NewCoursePage() {
           content: lesson.content,
           duration: lesson.duration,
           order: i + 1,
+          transcript: lesson.transcript,
         });
       }
 
@@ -336,6 +338,19 @@ export default function NewCoursePage() {
                           </FormItem>
                         )}
                       />
+                       <FormField
+                        control={form.control}
+                        name={`lessons.${index}.transcript`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Transcript</FormLabel>
+                            <FormControl>
+                              <Textarea placeholder="Enter the lesson transcript here..." {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                       <Button
                         type="button"
                         variant="destructive"
@@ -351,7 +366,7 @@ export default function NewCoursePage() {
                  <Button
                   type="button"
                   variant="outline"
-                  onClick={() => append({ title: '', type: 'video', content: '', duration: 10 })}
+                  onClick={() => append({ title: '', type: 'video', content: '', duration: 10, transcript: '' })}
                 >
                   <PlusCircle className="mr-2 h-4 w-4" /> Add Lesson
                 </Button>
@@ -368,3 +383,5 @@ export default function NewCoursePage() {
     </div>
   );
 }
+
+    
