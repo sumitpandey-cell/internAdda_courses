@@ -42,7 +42,7 @@ export default function RecommendationsPage() {
       firestore && recommendedCourseIds.length > 0
         ? query(collection(firestore, 'courses'), where('__name__', 'in', recommendedCourseIds))
         : null,
-    [firestore, recommendedCourseIds]
+    [firestore, recommendedCourseIds.join(',')]
   );
   const { data: recommendations } = useCollection<Course>(coursesQuery);
 

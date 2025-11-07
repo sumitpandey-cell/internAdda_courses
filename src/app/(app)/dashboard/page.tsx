@@ -26,7 +26,7 @@ export default function DashboardPage() {
       firestore && enrolledCourseIds.length > 0
         ? query(collection(firestore, 'courses'), where('id', 'in', enrolledCourseIds))
         : null,
-    [firestore, enrolledCourseIds]
+    [firestore, enrolledCourseIds.join(',')] // Use a stable string representation
   );
   const { data: enrolledCourses, isLoading: coursesLoading } = useCollection<Course>(coursesQuery);
 

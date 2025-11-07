@@ -4,19 +4,25 @@ import { StatsCard } from '@/components/dashboard/StatsCard';
 import { UserTable } from '@/components/admin/UserTable';
 import { AnalyticsChart } from '@/components/admin/AnalyticsChart';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { useCollection, useFirebase } from '@/firebase';
+import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import { Users, BookOpen, DollarSign } from 'lucide-react';
 
 export default function AdminPage() {
   const { firestore } = useFirebase();
 
-  const { data: users, isLoading: usersLoading } = useCollection(
-    firestore ? query(collection(firestore, 'users')) : null
+  const usersQuery = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, 'users')) : null),
+    [firestore]
   );
-  const { data: courses, isLoading: coursesLoading } = useCollection(
-    firestore ? query(collection(firestore, 'courses')) : null
+  const { data: users, isLoading: usersLoading } = useCollection(usersQuery);
+
+  const coursesQuery = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, 'courses')) : null),
+    [firestore]
   );
+  const { data: courses, isLoading: coursesLoading } = useCollection(coursesQuery);
+
 
   const totalUsers = users?.length || 0;
   const totalCourses = courses?.length || 0;
