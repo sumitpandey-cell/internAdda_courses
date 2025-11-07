@@ -1,0 +1,305 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user within the CourseFlow application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "User's full name."
+        },
+        "role": {
+          "type": "string",
+          "description": "User's role (Admin, Instructor, Student)."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "name",
+        "role"
+      ]
+    },
+    "Course": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Course",
+      "type": "object",
+      "description": "Represents a course offered in the CourseFlow application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the course."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the course."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the course content."
+        },
+        "instructorId": {
+          "type": "string",
+          "description": "Reference to Instructor. (Relationship: Instructor 1:N Course)"
+        },
+        "category": {
+          "type": "string",
+          "description": "Category that the course belongs to (e.g., 'Programming', 'Design')."
+        },
+        "tags": {
+          "type": "array",
+          "description": "Tags associated with the course (e.g., 'beginner', 'advanced', 'react').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "difficulty": {
+          "type": "string",
+          "description": "Difficulty level of the course (e.g., 'Beginner', 'Intermediate', 'Advanced')."
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "description",
+        "instructorId",
+        "category",
+        "difficulty"
+      ]
+    },
+    "Lesson": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Lesson",
+      "type": "object",
+      "description": "Represents a lesson within a course.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the lesson."
+        },
+        "courseId": {
+          "type": "string",
+          "description": "Reference to Course. (Relationship: Course 1:N Lesson)"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the lesson."
+        },
+        "content": {
+          "type": "string",
+          "description": "Content of the lesson (text, video URL, etc.)."
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of lesson (e.g., 'video', 'text', 'quiz')."
+        },
+        "order": {
+          "type": "number",
+          "description": "The order in which the lesson appears in the course."
+        }
+      },
+      "required": [
+        "id",
+        "courseId",
+        "title",
+        "content",
+        "type",
+        "order"
+      ]
+    },
+    "Progress": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Progress",
+      "type": "object",
+      "description": "Tracks user progress in a specific course.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the progress entry."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Progress)"
+        },
+        "courseId": {
+          "type": "string",
+          "description": "Reference to Course. (Relationship: Course 1:N Progress)"
+        },
+        "completedLessons": {
+          "type": "number",
+          "description": "Number of lessons completed by the user in the course."
+        },
+        "totalLessons": {
+          "type": "number",
+          "description": "Total number of lessons in the course."
+        },
+        "percentage": {
+          "type": "number",
+          "description": "Percentage of the course completed by the user."
+        },
+        "lastLessonId": {
+          "type": "string",
+          "description": "Reference to Lesson. Last lesson the user viewed."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "courseId",
+        "completedLessons",
+        "totalLessons",
+        "percentage"
+      ]
+    },
+    "Note": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Note",
+      "type": "object",
+      "description": "Represents a note taken by a user for a specific lesson.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the note."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Note)"
+        },
+        "lessonId": {
+          "type": "string",
+          "description": "Reference to Lesson. (Relationship: Lesson 1:N Note)"
+        },
+        "content": {
+          "type": "string",
+          "description": "Content of the note."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp indicating when the note was created or last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "lessonId",
+        "content",
+        "timestamp"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Includes denormalized user ID for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/courses/{courseId}",
+        "definition": {
+          "entityName": "Course",
+          "schema": {
+            "$ref": "#/backend/entities/Course"
+          },
+          "description": "Stores course information, including title, description, instructorId, category, tags, and difficulty. Instructor ID is stored in each document to enable secure list operations and authorization independence (no get() calls needed in rules).",
+          "params": [
+            {
+              "name": "courseId",
+              "description": "The unique identifier for the course."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/courses/{courseId}/lessons/{lessonId}",
+        "definition": {
+          "entityName": "Lesson",
+          "schema": {
+            "$ref": "#/backend/entities/Lesson"
+          },
+          "description": "Stores lessons within a course. Each lesson contains a title, content, type, and order. The path includes the courseId for efficient lesson retrieval within a specific course.",
+          "params": [
+            {
+              "name": "courseId",
+              "description": "The unique identifier for the course."
+            },
+            {
+              "name": "lessonId",
+              "description": "The unique identifier for the lesson."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/progress/{progressId}",
+        "definition": {
+          "entityName": "Progress",
+          "schema": {
+            "$ref": "#/backend/entities/Progress"
+          },
+          "description": "Stores user progress for each course, including completedLessons, totalLessons, percentage, and lastLessonId. The userId is part of the path, ensuring path-based ownership. Includes userId, courseId, and other relevant progress data.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "progressId",
+              "description": "The unique identifier for the progress entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/notes/{noteId}",
+        "definition": {
+          "entityName": "Note",
+          "schema": {
+            "$ref": "#/backend/entities/Note"
+          },
+          "description": "Stores notes taken by users for specific lessons. Each note includes the lessonId, content, and timestamp. The userId is part of the path, enforcing path-based ownership. Includes userId, lessonId, content, and timestamp.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "noteId",
+              "description": "The unique identifier for the note."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support the CourseFlow application's core features, including course browsing, lesson playback, progress tracking, and note-taking, while adhering to the principles of Authorization Independence, Structural Segregation, and Access Modeling.  Authorization Independence is achieved through denormalization of instructor IDs in courses and user IDs in progress and notes. This avoids the need for `get()` calls in security rules. Structural Segregation is maintained by keeping user-specific data (progress, notes) separate from course data. Access Modeling employs path-based ownership for user-related data and the membership map pattern is not used since there is no collaborative data required.\n\nThe `courses` collection stores general course information, and instructorId is stored in the document which allows instructor-based `list` operations. Each user has their own subcollection for courses and progress to efficiently manage access and data. Lessons are structured within courses which avoids collection group queries and enables efficient retrieval of lessons and notes associated with them. The structure supports the required QAPs by enabling secure `list` operations using path-based rules for user-owned data.\n\nSpecifically:\n\n*   **Courses:** Stores the courses and supports listing courses.\n*   **Users:** Stores user data.\n*   **Progress:** User's progress within a course.\n*   **Notes:** User's notes within a course."
+  }
+}
