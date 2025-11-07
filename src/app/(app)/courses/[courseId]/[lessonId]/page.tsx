@@ -4,6 +4,7 @@ import { courses } from "@/lib/data";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronLeft, ChevronRight, CheckCircle, FileText, Video, BookText } from "lucide-react";
 
 type LessonPageProps = {
@@ -28,46 +29,46 @@ export default function LessonPage({ params }: LessonPageProps) {
     <div className="flex flex-col md:flex-row gap-6 h-[calc(100vh-theme(spacing.14)-2*theme(spacing.6))]">
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto pr-4 space-y-4">
-          <h1 className="text-3xl font-bold font-headline">{lesson.title}</h1>
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <h1 className="text-3xl font-bold font-headline mb-4">{lesson.title}</h1>
           
           {lesson.type === "video" ? (
-            <div className="space-y-4">
-                <div className="aspect-video rounded-lg overflow-hidden">
-                <iframe
-                    className="w-full h-full"
-                    src={`https://www.youtube.com/embed/${lesson.content}`}
-                    title="YouTube video player"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                ></iframe>
+            <div className="flex-1 flex flex-col overflow-hidden space-y-4">
+                <div className="aspect-video rounded-lg overflow-hidden flex-shrink-0">
+                  <iframe
+                      className="w-full h-full"
+                      src={`https://www.youtube.com/embed/${lesson.content}`}
+                      title="YouTube video player"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                  ></iframe>
                 </div>
                 {lesson.transcript && (
-                    <Card>
+                    <Card className="flex-1 flex flex-col overflow-hidden">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <BookText className="h-6 w-6" />
                                 Transcript
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="prose dark:prose-invert max-w-none">
-                            <p>{lesson.transcript}</p>
+                        <CardContent className="flex-1 overflow-y-auto">
+                            <p className="prose dark:prose-invert max-w-none">{lesson.transcript}</p>
                         </CardContent>
                     </Card>
                 )}
             </div>
           ) : (
-             <Card>
-                <CardContent className="p-6 prose dark:prose-invert max-w-none">
-                    <p>{lesson.content}</p>
+             <Card className="flex-1 overflow-hidden">
+                <CardContent className="p-6 h-full overflow-y-auto">
+                    <p className="prose dark:prose-invert max-w-none">{lesson.content}</p>
                 </CardContent>
              </Card>
           )}
 
         </div>
 
-        <div className="flex justify-between items-center mt-4 pt-4 border-t">
+        <div className="flex justify-between items-center mt-4 pt-4 border-t flex-shrink-0">
           {prevLesson ? (
             <Button variant="outline" asChild>
               <Link href={`/courses/${course.id}/${prevLesson.id}`}>
@@ -99,7 +100,7 @@ export default function LessonPage({ params }: LessonPageProps) {
             <Button className="mt-2">Save Note</Button>
           </CardContent>
         </Card>
-        <Card className="max-h-64">
+        <Card className="flex flex-col" style={{maxHeight: '35%'}}>
            <CardHeader>
             <CardTitle>Lessons</CardTitle>
           </CardHeader>
