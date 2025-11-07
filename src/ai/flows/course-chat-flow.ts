@@ -126,9 +126,9 @@ AVAILABLE COURSES:
           generationConfig: {
             responseMimeType: "application/json",
           },
-        },
-        output: {
-            schema: CourseChatResponseSchema,
+          output: {
+              schema: CourseChatResponseSchema,
+          },
         },
         context: {
           message: input.message,
