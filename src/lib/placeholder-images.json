@@ -1,3 +1,58 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-1",
+      "description": "A student learning at a modern desk with a laptop and books.",
+      "imageUrl": "https://images.unsplash.com/photo-1762330915716-69ffffeeee95?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxsZWFybmluZyUyMGVkdWNhdGlvbnxlbnwwfHx8fDE3NjI1MTI1NzB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "learning education"
+    },
+    {
+      "id": "course-js-thumb",
+      "description": "JavaScript code on a screen.",
+      "imageUrl": "https://images.unsplash.com/photo-1667372393053-6e13b226fba6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxjb2RlJTIwamF2YXNjcmlwdHxlbnwwfHx8fDE3NjI0Mjc0Nzl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "code javascript"
+    },
+    {
+      "id": "course-react-thumb",
+      "description": "React logo with code snippets.",
+      "imageUrl": "https://images.unsplash.com/photo-1685558589023-3297b012d8bc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjb2RlJTIwcmVhY3R8ZW58MHx8fHwxNzYyNTI4MzcwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "code react"
+    },
+    {
+      "id": "course-python-thumb",
+      "description": "Python code for data science.",
+      "imageUrl": "https://images.unsplash.com/photo-1580121521203-ab94824d9382?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Y29kZSUyMHB5dGhvbnxlbnwwfHx8fDE3NjI0ODk4OTF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "code python"
+    },
+    {
+      "id": "course-node-thumb",
+      "description": "Node.js backend code.",
+      "imageUrl": "https://images.unsplash.com/photo-1687603917313-ccae1a289a9d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxjb2RlJTIwbm9kZWpzfGVufDB8fHx8MTc2MjUyODM2OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "code nodejs"
+    },
+    {
+      "id": "course-ux-thumb",
+      "description": "UX design wireframes and sketches.",
+      "imageUrl": "https://images.unsplash.com/photo-1546437593-3d0258c28037?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxkZXNpZ24lMjB3aXJlZnJhbWV8ZW58MHx8fHwxNzYyNDg5ODkxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "design wireframe"
+    },
+    {
+      "id": "course-sql-thumb",
+      "description": "SQL database schema diagram.",
+      "imageUrl": "https://images.unsplash.com/photo-1759210358942-92d5c9d8b549?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxkYXRhYmFzZSUyMHNxbHxlbnwwfHx8fDE3NjI1MjgzNzB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "database sql"
+    },
+    {
+      "id": "course-docker-thumb",
+      "description": "Docker containers visualization.",
+      "imageUrl": "https://images.unsplash.com/photo-1741666989875-8e30ee0fc524?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxkZXZvcHMlMjBjb250YWluZXJzfGVufDB8fHx8MTc2MjUyODM3MHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "devops containers"
+    },
+    {
+      "id": "course-ai-thumb",
+      "description": "Artificial intelligence neural network visualization.",
+      "imageUrl": "https://images.unsplash.com/photo-1645839072940-bb2a4f189ed3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxhaSUyMG5ldXJhbCUyMG5ldHdvcmt8ZW58MHx8fHwxNzYyNTI4MzY5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "ai neural network"
+    }
+  ]
 }
