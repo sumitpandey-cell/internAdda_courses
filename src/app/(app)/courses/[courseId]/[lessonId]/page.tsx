@@ -22,7 +22,10 @@ import {
   ChevronRight,
   CheckCircle,
   PlayCircle,
+  BookOpen,
 } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type LessonPageProps = {
   params: {
@@ -50,60 +53,65 @@ export default function LessonPage({ params }: LessonPageProps) {
   const isCompleted = progress?.completedLessons.includes(lesson.id);
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
+    <div className="grid md:grid-cols-[350px_1fr] min-h-screen bg-background text-foreground">
       {/* Left Sidebar */}
-      <aside className="w-[350px] flex-shrink-0 border-r bg-card p-6 flex flex-col">
-        <div className="flex-1">
+      <aside className="border-r bg-card flex flex-col h-screen">
+        <div className="p-6 border-b">
           <Button
             variant="ghost"
             onClick={() => router.push(`/courses/${course.id}`)}
-            className="mb-6"
+            className="mb-4"
           >
             <ChevronLeft className="mr-2 h-4 w-4" />
             Back to Course
           </Button>
-          <h1 className="text-2xl font-bold font-headline">{course.title}</h1>
-          <p className="text-sm text-muted-foreground mt-2">
-            {course.description}
-          </p>
+          <h1 className="text-xl font-bold font-headline">{course.title}</h1>
           <div className="mt-4 space-y-2">
             <Progress value={progress?.percentage || 0} className="h-2" />
             <p className="text-xs text-muted-foreground">
               {Math.round(progress?.percentage || 0)}% complete
             </p>
           </div>
-          <div className="mt-8">
+        </div>
+        <ScrollArea className="flex-1">
+          <div className="p-6">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <BookOpen className="h-5 w-5" />
+              Course Content
+            </h2>
             <Accordion
               type="single"
               collapsible
               className="w-full"
               defaultValue={`item-${lessonIndex}`}
             >
-              {course.lessons.map((l, index) => (
+              {course.lessons.map((l, index) => {
+                 const isLessonCompleted = progress?.completedLessons.includes(l.id);
+                return (
                 <AccordionItem key={l.id} value={`item-${index}`}>
-                  <AccordionTrigger>
+                  <AccordionTrigger className={l.id === lesson.id ? "text-primary" : ""}>
                     <Link
                       href={`/courses/${course.id}/${l.id}`}
                       className="flex items-center gap-3 w-full"
                     >
-                      <PlayCircle className="h-5 w-5 text-muted-foreground" />
-                      <span className="font-medium text-sm">{l.title}</span>
+                      {isLessonCompleted ? <CheckCircle className="h-5 w-5 text-green-500" /> : <PlayCircle className="h-5 w-5 text-muted-foreground" />}
+                      <span className="font-medium text-sm text-left">{l.title}</span>
                     </Link>
                   </AccordionTrigger>
                   <AccordionContent className="text-sm text-muted-foreground pl-10">
                     {l.type === 'video' ? `Video - ${l.duration} min` : `Text - ${l.duration} min`}
                   </AccordionContent>
                 </AccordionItem>
-              ))}
+              )})}
             </Accordion>
           </div>
-        </div>
+        </ScrollArea>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col p-6 md:p-8 lg:p-12 overflow-y-auto">
-        <div className="flex-1">
-          <div className="aspect-video rounded-lg overflow-hidden shadow-2xl bg-black">
+      <main className="flex-1 flex flex-col h-screen overflow-y-auto">
+        <div className="flex-1 p-6 md:p-8 lg:p-12">
+          <div className="aspect-video rounded-lg overflow-hidden shadow-2xl bg-black mb-8">
             {lesson.type === 'video' ? (
               <iframe
                 className="w-full h-full"
@@ -121,24 +129,40 @@ export default function LessonPage({ params }: LessonPageProps) {
                 </Card>
             )}
           </div>
+        
+          <Tabs defaultValue="transcript" className="w-full">
+            <TabsList>
+              <TabsTrigger value="transcript">Transcript</TabsTrigger>
+              <TabsTrigger value="notes">Notes</TabsTrigger>
+            </TabsList>
+            <TabsContent value="transcript">
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="prose dark:prose-invert max-w-none text-muted-foreground">
+                            <p>{lesson.transcript || 'No transcript available for this lesson.'}</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            <TabsContent value="notes">
+                 <Card>
+                    <CardContent className="p-6">
+                        <div className="prose dark:prose-invert max-w-none text-muted-foreground">
+                            <p>This section can contain your personal notes, code snippets, and links to external resources to supplement the lesson.</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+          </Tabs>
 
-          <div className="mt-8">
-            <h2 className="text-2xl font-bold font-headline">{lesson.title}</h2>
-            <div className="mt-4 prose dark:prose-invert max-w-none text-muted-foreground">
-                <h3 className="text-lg font-semibold text-foreground">Notes</h3>
-                <p>
-                    {lesson.transcript || 'This section can contain more detailed notes, code snippets, and links to external resources to supplement the video lesson.'}
-                </p>
-            </div>
-          </div>
         </div>
 
-        <div className="mt-12 flex flex-col items-center">
-             <div className="w-full max-w-3xl flex justify-between items-center mb-4">
+        <div className="sticky bottom-0 bg-background/80 backdrop-blur-sm border-t p-4 flex flex-col items-center">
+             <div className="w-full max-w-4xl flex justify-between items-center mb-4">
                {prevLesson ? (
                  <Button variant="outline" asChild>
                    <Link href={`/courses/${course.id}/${prevLesson.id}`}>
-                     <ChevronLeft className="mr-2 h-4 w-4" /> Previous Lesson
+                     <ChevronLeft className="mr-2 h-4 w-4" /> Previous
                    </Link>
                  </Button>
                ) : <div />}
