@@ -33,9 +33,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useFirebase } from '@/firebase';
+import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { getAuth } from 'firebase/auth';
-import { Skeleton } from '@/components/ui/skeleton';
+import { doc } from 'firebase/firestore';
+import type { UserProfile } from '@/lib/data-types';
+
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -48,7 +50,13 @@ const adminNavItems = [{ href: '/admin', icon: Shield, label: 'Admin Panel' }];
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isUserLoading } = useFirebase();
+  const { user, isUserLoading, firestore } = useFirebase();
+
+  const userProfileRef = useMemoFirebase(
+    () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
+    [firestore, user]
+  );
+  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
   const handleLogout = () => {
     getAuth().signOut();
@@ -57,7 +65,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const pathSegments = pathname.split('/').filter(Boolean);
   const isLessonPage = pathSegments[0] === 'courses' && pathSegments.length > 1;
-
+  
   const isActive = (path: string) => {
     if (path === '/courses' && (pathname.startsWith('/courses/') || pathname === '/courses')) return true;
     if (path !== '/courses' && path !== '/dashboard') return pathname.startsWith(path);
@@ -116,7 +124,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
-          {user.uid === process.env.NEXT_PUBLIC_ADMIN_UID && ( // Simple admin check
+          {userProfile?.role === 'Admin' && (
             <SidebarMenu>
               <SidebarMenuItem>
                 <hr className="my-2 border-border" />

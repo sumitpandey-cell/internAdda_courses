@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import { useFirebase, addDocumentNonBlocking } from '@/firebase';
+import { useFirebase, addDocumentNonBlocking, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Form,
   FormControl,
@@ -28,7 +28,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Loader2, PlusCircle, Trash2 } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, ShieldAlert } from 'lucide-react';
+import type { UserProfile } from '@/lib/data-types';
 
 const lessonSchema = z.object({
   title: z.string().min(1, 'Title is required.'),
@@ -54,6 +55,12 @@ export default function NewCoursePage() {
   const router = useRouter();
   const { firestore, user } = useFirebase();
 
+  const userProfileRef = useMemoFirebase(
+    () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
+    [firestore, user]
+  );
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
+
   const form = useForm<CourseFormValues>({
     resolver: zodResolver(courseSchema),
     defaultValues: {
@@ -72,13 +79,20 @@ export default function NewCoursePage() {
     name: 'lessons',
   });
 
+  useEffect(() => {
+    // Redirect if user is loaded and is not an instructor/admin
+    if (!isProfileLoading && userProfile && userProfile.role === 'Student') {
+      router.replace('/courses');
+    }
+  }, [userProfile, isProfileLoading, router]);
+
   const onSubmit = async (data: CourseFormValues) => {
-    if (!firestore || !user) return;
+    if (!firestore || !user || userProfile?.role === 'Student') return;
     setIsLoading(true);
 
     try {
-      // 1. Add the main course document
-      const courseRef = doc(collection(firestore, 'courses'));
+      const courseCollectionRef = collection(firestore, 'courses');
+      const courseRef = doc(courseCollectionRef);
       const courseId = courseRef.id;
 
       const newCourse = {
@@ -92,24 +106,28 @@ export default function NewCoursePage() {
         instructorId: user.uid,
         instructor: user.displayName || 'Anonymous', // Denormalize instructor name
       };
-
+      
       // Use non-blocking write for the main document
-      addDocumentNonBlocking(collection(firestore, 'courses'), newCourse);
-
+      // We are using setDoc here with the generated ref to ensure the ID is set correctly.
+      await setDoc(courseRef, newCourse);
+      
       // 2. Add each lesson to the subcollection
       for (let i = 0; i < data.lessons.length; i++) {
         const lesson = data.lessons[i];
-        const lessonRef = doc(collection(firestore, `courses/${courseId}/lessons`));
+        const lessonCollectionRef = collection(firestore, `courses/${courseId}/lessons`);
+        const lessonRef = doc(lessonCollectionRef);
         const newLesson = {
           id: lessonRef.id,
+          courseId: courseId,
           title: lesson.title,
           type: lesson.type,
           content: lesson.content,
           duration: lesson.duration,
           order: i + 1,
         };
-        // Also non-blocking
-        addDocumentNonBlocking(collection(firestore, `courses/${courseId}/lessons`), newLesson);
+        // Also non-blocking, but we can await them inside a loop if we want to ensure order.
+        // For simplicity, we fire and forget.
+        addDocumentNonBlocking(lessonCollectionRef, newLesson);
       }
 
       router.push(`/courses/${courseId}`);
@@ -120,11 +138,42 @@ export default function NewCoursePage() {
     }
   };
 
+  if (isProfileLoading) {
+     return (
+        <div className="flex justify-center items-center h-96">
+            <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+     )
+  }
+  
+  if (userProfile?.role === 'Student') {
+      return (
+          <div className="max-w-4xl mx-auto">
+              <Card className="mt-10 border-destructive">
+                  <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-destructive">
+                          <ShieldAlert />
+                          Access Denied
+                      </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                      <p>You do not have permission to create courses. This area is for instructors only.</p>
+                      <Button onClick={() => router.push('/courses')} className="mt-4">
+                          Back to Courses
+                      </Button>
+                  </CardContent>
+              </Card>
+          </div>
+      )
+  }
+
+
   return (
     <div className="max-w-4xl mx-auto">
       <Card>
         <CardHeader>
           <CardTitle>Create New Course</CardTitle>
+          <CardDescription>Fill out the details below to create a new course. You must add at least one lesson.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -246,7 +295,7 @@ export default function NewCoursePage() {
                           </FormItem>
                         )}
                       />
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
                             name={`lessons.${index}.type`}
@@ -254,7 +303,7 @@ export default function NewCoursePage() {
                             <FormItem>
                                 <FormLabel>Type</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select type"/></SelectTrigger></FormControl>
                                     <SelectContent>
                                         <SelectItem value="video">Video</SelectItem>
                                         <SelectItem value="text">Text</SelectItem>
@@ -285,6 +334,9 @@ export default function NewCoursePage() {
                             <FormControl>
                               <Textarea placeholder="YouTube Video ID or Markdown content" {...field} />
                             </FormControl>
+                            <FormDescription>
+                                {form.watch(`lessons.${index}.type`) === 'video' ? 'Enter the YouTube Video ID.' : 'Enter text content using Markdown.'}
+                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
