@@ -8,10 +8,9 @@ import {
   useDoc,
   useCollection,
   useMemoFirebase,
-  updateDocumentNonBlocking,
   setDocumentNonBlocking,
 } from '@/firebase';
-import { doc, collection, query, orderBy, where, setDoc } from 'firebase/firestore';
+import { doc, collection, query, orderBy, where } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -61,7 +60,7 @@ export default function LessonPage() {
     [firestore, courseId, lessonId]
   );
   const progressRef = useMemoFirebase(
-    () => (firestore && user ? doc(firestore, 'users', user.uid, 'progress', courseId) : null),
+    () => (firestore && user && courseId ? doc(firestore, 'users', user.uid, 'progress', courseId) : null),
     [firestore, user, courseId]
   );
   const notesQuery = useMemoFirebase(
@@ -92,7 +91,7 @@ export default function LessonPage() {
   const isCompleted = progress?.completedLessons?.includes(lessonId);
 
   const handleMarkComplete = () => {
-    if (!progressRef || !user || !lessons || !course) return;
+    if (!progressRef || !user || !lessons || !course || !courseId) return;
 
     const completedLessons = progress?.completedLessons || [];
     let newCompletedLessons = [...completedLessons];
@@ -108,7 +107,7 @@ export default function LessonPage() {
     const percentage = Math.round((newCompletedLessons.length / lessons.length) * 100);
 
     const newProgress: UserProgress = {
-      courseId: course.id,
+      courseId: courseId,
       completedLessons: newCompletedLessons,
       totalLessons: lessons.length,
       percentage: percentage,

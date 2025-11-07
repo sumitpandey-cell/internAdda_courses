@@ -124,12 +124,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
-          {userProfile?.role === 'Admin' && (
+          {(userProfile?.role === 'Admin' || userProfile?.role === 'Instructor') && (
             <SidebarMenu>
               <SidebarMenuItem>
                 <hr className="my-2 border-border" />
               </SidebarMenuItem>
-              {adminNavItems.map((item) => (
+              {userProfile?.role === 'Admin' && adminNavItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild

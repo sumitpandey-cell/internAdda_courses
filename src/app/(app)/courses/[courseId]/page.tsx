@@ -28,7 +28,7 @@ export default function CoursePage() {
     [firestore, courseId]
   );
   const progressRef = useMemoFirebase(
-    () => (firestore && user ? doc(firestore, 'users', user.uid, 'progress', courseId) : null),
+    () => (firestore && user && courseId ? doc(firestore, 'users', user.uid, 'progress', courseId) : null),
     [firestore, user, courseId]
   );
 
