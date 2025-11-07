@@ -42,8 +42,9 @@ export async function getCourseRecommendations(
 ): Promise<CourseChatResponse & { audioBase64?: string }> {
   try {
     const result = await courseRecommendationFlow(input);
-    
+    console.log(result)
     if (!result.response) {
+      console.log(result.response)
         return { ...result, response: "I'm sorry, I could not generate a response." };
     }
 
@@ -62,6 +63,7 @@ export async function getCourseRecommendations(
     });
 
     if (!media) {
+      console.log("No audio generated.")
       return result; // Return text response if audio generation fails
     }
 
