@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import { useFirebase, addDocumentNonBlocking, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, setDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -115,19 +115,14 @@ export default function NewCoursePage() {
       for (let i = 0; i < data.lessons.length; i++) {
         const lesson = data.lessons[i];
         const lessonCollectionRef = collection(firestore, `courses/${courseId}/lessons`);
-        const lessonRef = doc(lessonCollectionRef);
-        const newLesson = {
-          id: lessonRef.id,
+        addDocumentNonBlocking(lessonCollectionRef, {
           courseId: courseId,
           title: lesson.title,
           type: lesson.type,
           content: lesson.content,
           duration: lesson.duration,
           order: i + 1,
-        };
-        // Also non-blocking, but we can await them inside a loop if we want to ensure order.
-        // For simplicity, we fire and forget.
-        addDocumentNonBlocking(lessonCollectionRef, newLesson);
+        });
       }
 
       router.push(`/courses/${courseId}`);

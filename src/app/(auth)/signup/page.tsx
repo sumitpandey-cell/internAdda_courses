@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpen, Loader2 } from 'lucide-react';
 import type { UserProfile } from '@/lib/data-types';
+import { setDocumentNonBlocking } from '@/firebase';
 
 const signupSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -51,10 +52,10 @@ export default function SignupPage() {
         id: user.uid,
         name: data.name,
         email: data.email,
-        role: 'Student',
+        role: 'Student', // Assign default role
         avatar: `https://picsum.photos/seed/${user.uid}/100/100`,
       };
-      await setDoc(userDocRef, newUser);
+      setDocumentNonBlocking(userDocRef, newUser, {});
 
       router.push('/dashboard');
     } catch (error: any) {

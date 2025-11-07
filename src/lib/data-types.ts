@@ -13,11 +13,11 @@ export type Course = {
   title: string;
   description: string;
   instructor: string;
+  instructorId: string;
   category: string;
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
   tags: string[];
   thumbnail: string;
-  lessons: Lesson[]; // This might not be directly on the course doc anymore
 };
 
 export type UserProgress = {
