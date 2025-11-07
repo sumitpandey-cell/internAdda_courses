@@ -11,12 +11,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, PlusCircle } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useFirebase, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
 import type { Course, UserProfile } from '@/lib/data-types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
 
 export default function CoursesPage() {
   const { firestore, user } = useFirebase();
@@ -35,8 +34,6 @@ export default function CoursesPage() {
     [firestore, user]
   );
   const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
-
-  const isInstructor = userProfile?.role === 'Instructor' || userProfile?.role === 'Admin';
 
   const categories = ['All', ...new Set(courses?.map((c) => c.category) || [])];
   const difficulties = ['All', 'Beginner', 'Intermediate', 'Advanced'];
@@ -87,14 +84,6 @@ export default function CoursesPage() {
               ))}
             </SelectContent>
           </Select>
-          {isInstructor && (
-            <Button asChild className="w-full md:w-auto">
-              <Link href="/courses/new">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                New Course
-              </Link>
-            </Button>
-          )}
         </div>
       </div>
       {isLoading ? (
