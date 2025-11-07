@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { CourseCard } from '@/components/courses/CourseCard';
 import { Input } from '@/components/ui/input';
 import {
@@ -10,14 +11,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search } from 'lucide-react';
+import { Search, PlusCircle } from 'lucide-react';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
-import type { Course } from '@/lib/data-types';
+import type { Course, UserProfile } from '@/lib/data-types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 
 export default function CoursesPage() {
-  const { firestore } = useFirebase();
+  const { firestore, user } = useFirebase();
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState('All');
   const [difficulty, setDifficulty] = useState('All');
@@ -27,6 +29,10 @@ export default function CoursesPage() {
     [firestore]
   );
   const { data: courses, isLoading } = useCollection<Course>(coursesQuery);
+
+  // You might want to fetch user profile to check role
+  // For now, let's assume a simple check. A real app would use custom claims or a user profile doc.
+  const isInstructor = true; // Replace with actual role check, e.g., userProfile?.role === 'Instructor'
 
   const categories = ['All', ...new Set(courses?.map((c) => c.category) || [])];
   const difficulties = ['All', 'Beginner', 'Intermediate', 'Advanced'];
@@ -52,9 +58,9 @@ export default function CoursesPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex gap-4">
+        <div className="flex gap-2 md:gap-4 flex-wrap">
           <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="w-full md:w-[180px]">
+            <SelectTrigger className="w-full min-w-[150px] flex-1 md:w-[180px]">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
@@ -66,7 +72,7 @@ export default function CoursesPage() {
             </SelectContent>
           </Select>
           <Select value={difficulty} onValueChange={setDifficulty}>
-            <SelectTrigger className="w-full md:w-[180px]">
+            <SelectTrigger className="w-full min-w-[150px] flex-1 md:w-[180px]">
               <SelectValue placeholder="Difficulty" />
             </SelectTrigger>
             <SelectContent>
@@ -77,6 +83,14 @@ export default function CoursesPage() {
               ))}
             </SelectContent>
           </Select>
+          {isInstructor && (
+            <Button asChild className="w-full md:w-auto">
+              <Link href="/courses/new">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                New Course
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
       {isLoading ? (
