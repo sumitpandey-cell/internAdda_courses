@@ -5,8 +5,8 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter, useParams } from 'next/navigation';
-import { useFirebase, setDocumentNonBlocking, addDocumentNonBlocking, useDoc, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { useFirebase, setDocumentNonBlocking, useDoc, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, doc, setDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -107,7 +107,7 @@ export default function EditCoursePage() {
           content: l.content,
           duration: l.duration || 0,
           transcript: l.transcript || '',
-        })).sort((a,b) => lessons.find(l => l.id === a.id)!.order - lessons.find(l => l.id === b.id)!.order) // a bit of a hack
+        })).sort((a,b) => (lessons.find(l => l.id === a.id)?.order || 0) - (lessons.find(l => l.id === b.id)?.order || 0))
       });
     }
   }, [course, lessons, form]);
@@ -132,6 +132,7 @@ export default function EditCoursePage() {
 
     try {
       const updatedCourse = {
+        id: courseId, // Ensure id is present
         title: data.title,
         description: data.description,
         category: data.category,
@@ -141,14 +142,14 @@ export default function EditCoursePage() {
         // instructorId and name are not changed
       };
       
-      await setDocumentNonBlocking(courseRef, updatedCourse, { merge: true });
+      await setDoc(courseRef, updatedCourse, { merge: true });
       
       const newLessonIds = data.lessons.map(l => l.id).filter(Boolean);
       const lessonsToDelete = originalLessons.current.filter(l => !newLessonIds.includes(l.id));
 
       for (const lessonToDelete of lessonsToDelete) {
-          const lessonRef = doc(firestore, `courses/${courseId}/lessons/${lessonToDelete.id}`);
-          deleteDocumentNonBlocking(lessonRef);
+          const lessonRefToDelete = doc(firestore, `courses/${courseId}/lessons/${lessonToDelete.id}`);
+          deleteDocumentNonBlocking(lessonRefToDelete);
       }
       
       for (let i = 0; i < data.lessons.length; i++) {
@@ -157,7 +158,8 @@ export default function EditCoursePage() {
             ? doc(firestore, `courses/${courseId}/lessons`, lesson.id)
             : doc(collection(firestore, `courses/${courseId}/lessons`));
         
-        setDocumentNonBlocking(lessonRef, {
+        await setDoc(lessonRef, {
+            id: lessonRef.id,
             courseId: courseId,
             title: lesson.title,
             type: lesson.type,
@@ -426,5 +428,3 @@ export default function EditCoursePage() {
     </div>
   );
 }
-
-    

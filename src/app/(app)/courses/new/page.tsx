@@ -108,15 +108,16 @@ export default function NewCoursePage() {
         instructor: user.displayName || 'Anonymous', // Denormalize instructor name
       };
       
-      // Use non-blocking write for the main document
       // We are using setDoc here with the generated ref to ensure the ID is set correctly.
       await setDoc(courseRef, newCourse);
       
-      // 2. Add each lesson to the subcollection
       for (let i = 0; i < data.lessons.length; i++) {
         const lesson = data.lessons[i];
         const lessonCollectionRef = collection(firestore, `courses/${courseId}/lessons`);
-        addDocumentNonBlocking(lessonCollectionRef, {
+        const lessonRef = doc(lessonCollectionRef);
+        
+        await setDoc(lessonRef, {
+          id: lessonRef.id, // Ensure the lesson ID is also stored in the document
           courseId: courseId,
           title: lesson.title,
           type: lesson.type,
@@ -383,5 +384,3 @@ export default function NewCoursePage() {
     </div>
   );
 }
-
-    
