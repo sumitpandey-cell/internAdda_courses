@@ -19,8 +19,9 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Bot, Loader2 } from 'lucide-react';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
-import type { Course } from '@/lib/data-types';
+import { collection, query, where, documentId } from 'firebase/firestore';
+import type { Course, UserProgress } from '@/lib/data-types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const recommendationsSchema = z.object({
   preferences: z.string().min(10, 'Please describe your interests in a bit more detail.'),
@@ -32,19 +33,20 @@ export default function RecommendationsPage() {
   const { firestore, user } = useFirebase();
 
   const progressQuery = useMemoFirebase(
-    () => (firestore && user ? query(collection(firestore, 'users', user.uid, 'progress')) : null),
+    () => (firestore && user ? query(collection(firestore, `users/${user.uid}/progress`)) : null),
     [firestore, user]
   );
-  const { data: userProgress } = useCollection(progressQuery);
+  const { data: userProgress } = useCollection<UserProgress>(progressQuery);
 
-  const coursesQuery = useMemoFirebase(
+  const recommendationsQuery = useMemoFirebase(
     () =>
       firestore && recommendedCourseIds.length > 0
-        ? query(collection(firestore, 'courses'), where('__name__', 'in', recommendedCourseIds))
+        ? query(collection(firestore, 'courses'), where(documentId(), 'in', recommendedCourseIds))
         : null,
     [firestore, recommendedCourseIds.join(',')]
   );
-  const { data: recommendations } = useCollection<Course>(coursesQuery);
+
+  const { data: recommendations, isLoading: recommendationsLoading } = useCollection<Course>(recommendationsQuery);
 
 
   const form = useForm<z.infer<typeof recommendationsSchema>>({
@@ -65,7 +67,6 @@ export default function RecommendationsPage() {
       userId: user.uid,
       enrollmentHistory: enrolledCourseIds,
       preferences: values.preferences,
-      allCourseIds: [], // This will be populated on the server
     });
     
     setRecommendedCourseIds(ids);
@@ -112,14 +113,14 @@ export default function RecommendationsPage() {
         </CardContent>
       </Card>
 
-      {isLoading && (
+      {(isLoading || recommendationsLoading) && (
         <div className="text-center py-12">
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
             <p className="mt-2 text-muted-foreground">Our AI is thinking...</p>
         </div>
       )}
 
-      {recommendations && recommendations.length > 0 && (
+      {!isLoading && !recommendationsLoading && recommendations && recommendations.length > 0 && (
         <div>
           <h2 className="text-2xl font-bold font-headline mb-4">Here are some courses you might like:</h2>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -129,6 +130,11 @@ export default function RecommendationsPage() {
           </div>
         </div>
       )}
+       {!isLoading && !recommendationsLoading && recommendedCourseIds.length > 0 && recommendations?.length === 0 && (
+          <div className="text-center py-12 text-muted-foreground">
+            The AI couldn't find any recommendations based on your preferences. Try being more specific!
+          </div>
+        )}
     </div>
   );
 }

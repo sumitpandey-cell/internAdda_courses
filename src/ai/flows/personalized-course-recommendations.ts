@@ -20,7 +20,7 @@ const PersonalizedCourseRecommendationsInputSchema = z.object({
 export type PersonalizedCourseRecommendationsInput = z.infer<typeof PersonalizedCourseRecommendationsInputSchema>;
 
 const PersonalizedCourseRecommendationsOutputSchema = z.object({
-  courseRecommendations: z.array(z.string()).describe('An array of course IDs recommended for the user.'),
+  courseRecommendations: z.array(z.string()).describe('An array of 3-5 course IDs recommended for the user.'),
 });
 export type PersonalizedCourseRecommendationsOutput = z.infer<typeof PersonalizedCourseRecommendationsOutputSchema>;
 
@@ -34,15 +34,21 @@ const prompt = ai.definePrompt({
   name: 'personalizedCourseRecommendationsPrompt',
   input: {schema: PersonalizedCourseRecommendationsInputSchema},
   output: {schema: PersonalizedCourseRecommendationsOutputSchema},
-  prompt: `You are an AI course recommendation system. You will provide personalized course recommendations to the user based on their enrollment history and learning preferences.
+  prompt: `You are an AI course recommendation system for an online learning platform called CourseFlow. You will provide personalized course recommendations to the user based on their enrollment history and learning preferences.
+
+You should recommend 3 to 5 courses.
 
 User ID: {{{userId}}}
-Enrollment History: {{#each enrollmentHistory}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
-Learning Preferences: {{{preferences}}}
-Available Courses: {{#each allCourseIds}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
+User's Currently Enrolled Course IDs: {{#each enrollmentHistory}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
+User's Stated Learning Preferences: {{{preferences}}}
+
+List of All Available Course IDs on the Platform: {{#each allCourseIds}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
 
 
-Based on this information, recommend courses that the user might be interested in. Only return the IDs of the courses from the "Available Courses" list. Enclose the list of course IDs in an array.
+Based on this information, recommend a list of new courses that the user might be interested in.
+- DO NOT recommend courses the user is already enrolled in.
+- Only return the IDs of the courses from the "List of All Available Course IDs on the Platform".
+- Your response should only contain the JSON object with the "courseRecommendations" array.
 `,
 });
 
