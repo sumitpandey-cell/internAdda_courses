@@ -23,6 +23,7 @@ import type { Course, ChatMessage } from '@/lib/data-types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const chatSchema = z.object({
   message: z.string().min(1, 'Message cannot be empty.'),
@@ -34,7 +35,15 @@ export default function RecommendationsPage() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  const { firestore, user } = useFirebase();
+  const { firestore } = useFirebase();
+  
+  // 1. Fetch all courses once when the component mounts
+  const coursesQuery = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, 'courses')) : null),
+    [firestore]
+  );
+  const { data: allCourses, isLoading: areCoursesLoading } = useCollection<Course>(coursesQuery);
+
 
   const recommendedCourseIds = messages.flatMap(m => m.recommendedCourseIds || []);
 
@@ -46,7 +55,7 @@ export default function RecommendationsPage() {
     [firestore, recommendedCourseIds.join(',')]
   );
 
-  const { data: recommendations } = useCollection<Course>(recommendationsQuery);
+  const { data: recommendations, isLoading: areRecommendationsLoading } = useCollection<Course>(recommendationsQuery);
 
   const form = useForm<z.infer<typeof chatSchema>>({
     resolver: zodResolver(chatSchema),
@@ -78,7 +87,8 @@ export default function RecommendationsPage() {
         content: m.content
     }));
 
-    const result = await getCourseChatResponse(values.message, history);
+    // 2. Pass allCourses to the server action
+    const result = await getCourseChatResponse(values.message, history, allCourses || []);
 
     if (result) {
         setMessages(prev => [...prev, result]);
@@ -166,14 +176,14 @@ export default function RecommendationsPage() {
                                 render={({ field }) => (
                                 <FormItem className="flex-1">
                                     <FormControl>
-                                        <Input placeholder="Ask for course recommendations..." {...field} autoComplete="off" />
+                                        <Input placeholder="Ask for course recommendations..." {...field} autoComplete="off" disabled={areCoursesLoading} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
                                 )}
                             />
-                            <Button type="submit" size="icon" disabled={isAiLoading}>
-                                <Send className="h-4 w-4" />
+                            <Button type="submit" size="icon" disabled={isAiLoading || areCoursesLoading}>
+                                {areCoursesLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                             </Button>
                             </form>
                         </Form>
@@ -187,7 +197,13 @@ export default function RecommendationsPage() {
                     <h3 className="font-semibold mb-4 text-lg">Recommended for you</h3>
                     <ScrollArea className="flex-1">
                         <div className="space-y-4">
-                            {recommendations && recommendations.length > 0 ? (
+                            {areRecommendationsLoading && (
+                                <>
+                                    <Skeleton className="h-40 w-full" />
+                                    <Skeleton className="h-40 w-full" />
+                                </>
+                            )}
+                            {!areRecommendationsLoading && recommendations && recommendations.length > 0 ? (
                                 recommendations.map(course => <CourseCard key={course.id} course={course} />)
                             ) : (
                                 <div className="text-center py-12 text-muted-foreground">
