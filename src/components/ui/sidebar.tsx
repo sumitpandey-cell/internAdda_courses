@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/tooltip"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
+const SIDEBAR_WIDTH_COOKIE_NAME = "sidebar_width"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "16rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
@@ -34,6 +35,8 @@ type SidebarContext = {
   setOpenMobile: (open: boolean) => void
   isMobile: boolean
   toggleSidebar: () => void
+  sidebarWidth: number
+  setSidebarWidth: (width: number) => void
 }
 
 const SidebarContext = React.createContext<SidebarContext | null>(null)
@@ -69,6 +72,20 @@ const SidebarProvider = React.forwardRef<
   ) => {
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
+    const [sidebarWidth, setSidebarWidth] = React.useState(256);
+
+    React.useEffect(() => {
+        const storedWidth = localStorage.getItem(SIDEBAR_WIDTH_COOKIE_NAME);
+        if (storedWidth) {
+            setSidebarWidth(parseInt(storedWidth, 10));
+        }
+    }, []);
+
+    const handleSetSidebarWidth = (width: number) => {
+        const newWidth = Math.max(200, Math.min(width, 400));
+        setSidebarWidth(newWidth);
+        localStorage.setItem(SIDEBAR_WIDTH_COOKIE_NAME, newWidth.toString());
+    }
 
     // This is the internal state of the sidebar.
     // We use openProp and setOpenProp for control from outside the component.
@@ -125,8 +142,10 @@ const SidebarProvider = React.forwardRef<
         openMobile,
         setOpenMobile,
         toggleSidebar,
+        sidebarWidth,
+        setSidebarWidth: handleSetSidebarWidth,
       }),
-      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, sidebarWidth]
     )
 
     return (
@@ -135,7 +154,7 @@ const SidebarProvider = React.forwardRef<
           <div
             style={
               {
-                "--sidebar-width": SIDEBAR_WIDTH,
+                "--sidebar-width": `${sidebarWidth}px`,
                 "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
                 ...style,
               } as React.CSSProperties
@@ -287,17 +306,40 @@ SidebarTrigger.displayName = "SidebarTrigger"
 
 const SidebarRail = React.forwardRef<
   HTMLButtonElement,
-  React.ComponentProps<"button">
->(({ className, ...props }, ref) => {
-  const { toggleSidebar } = useSidebar()
+  React.HTMLAttributes<HTMLButtonElement>
+>(({ className, onDoubleClick, ...props }, ref) => {
+  const { toggleSidebar, setSidebarWidth } = useSidebar();
+  const isResizing = React.useRef(false);
 
+  const handleMouseDown = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    isResizing.current = true;
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (isResizing.current) {
+      setSidebarWidth(e.clientX);
+    }
+  };
+
+  const handleMouseUp = () => {
+    isResizing.current = false;
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+  };
+  
   return (
     <button
       ref={ref}
       data-sidebar="rail"
-      aria-label="Toggle Sidebar"
-      tabIndex={-1}
-      onClick={toggleSidebar}
+      aria-label="Toggle or Resize Sidebar"
+      onMouseDown={handleMouseDown}
+      onDoubleClick={(e) => {
+          onDoubleClick?.(e);
+          toggleSidebar();
+      }}
       title="Toggle Sidebar"
       className={cn(
         "absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border group-data-[side=left]:-right-4 group-data-[side=right]:left-0 sm:flex",
@@ -761,3 +803,5 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+
+    
