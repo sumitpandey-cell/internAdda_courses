@@ -41,12 +41,15 @@ export async function getCourseRecommendations(
   input: CourseChatRequest
 ): Promise<CourseChatResponse & { audioBase64?: string }> {
   try {
+    console.log("Calling courseRecommendationFlow with input:", JSON.stringify(input, null, 2));
     const result = await courseRecommendationFlow(input);
     
     if (!result.response) {
       console.log("AI did not return a response.", result);
       return { ...result, response: "I'm sorry, I could not generate a response." };
     }
+
+    console.log("AI text response received:", result.response);
 
     // Generate audio from the text response
     const { media } = await ai.generate({
@@ -67,6 +70,8 @@ export async function getCourseRecommendations(
       return result; // Return text response if audio generation fails
     }
 
+    console.log("Audio generated successfully.");
+
     const audioBuffer = Buffer.from(
       media.url.substring(media.url.indexOf(',') + 1),
       'base64'
@@ -75,7 +80,7 @@ export async function getCourseRecommendations(
     const audioBase64 = await toWav(audioBuffer);
     
     return { ...result, audioBase64 };
-  } catch (e) {
+  } catch (e: any) {
     console.error("Error in getCourseRecommendations:", e);
     // Return a user-friendly error response, but do not re-throw
     return {
@@ -118,10 +123,12 @@ AVAILABLE COURSES:
 {{/each}}
 `,
         config: {
-          output: {
-            format: 'json',
-            schema: CourseChatResponseSchema,
+          generationConfig: {
+            responseMimeType: "application/json",
           },
+        },
+        output: {
+            schema: CourseChatResponseSchema,
         },
         context: {
           message: input.message,
@@ -134,6 +141,8 @@ AVAILABLE COURSES:
         console.error('AI generation returned no output.');
         return { response: "I'm sorry, I had trouble processing that request. Please try again." };
       }
+
+      console.log('AI output received:', JSON.stringify(output, null, 2));
 
       // Safeguard to ensure IDs are valid
       if (output.recommendedCourseIds) {
