@@ -9,6 +9,7 @@ import {
   useCollection,
   useMemoFirebase,
   setDocumentNonBlocking,
+  deleteDocumentNonBlocking,
 } from '@/firebase';
 import { doc, collection, query, orderBy, where, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ import {
   PlayCircle,
   BookOpen,
   PanelLeft,
+  Trash2,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -136,6 +138,12 @@ export default function LessonPage() {
     }, {});
     setNoteContent('');
   };
+  
+  const handleDeleteNote = (noteId: string) => {
+      if (!firestore || !user) return;
+      const noteRef = doc(firestore, `users/${user.uid}/notes/${noteId}`);
+      deleteDocumentNonBlocking(noteRef);
+  }
 
 
   return (
@@ -289,9 +297,14 @@ export default function LessonPage() {
                      <div className="prose dark:prose-invert max-w-none text-muted-foreground space-y-4">
                         {notesLoading && <p>Loading notes...</p>}
                         {notes?.map(note => (
-                          <div key={note.id} className="p-2 border rounded-md">
-                            <p>{note.content}</p>
-                            {note.timestamp && <p className="text-xs text-muted-foreground mt-1">{new Date(note.timestamp.seconds * 1000).toLocaleString()}</p>}
+                          <div key={note.id} className="p-2 border rounded-md flex justify-between items-start">
+                            <div>
+                                <p>{note.content}</p>
+                                {note.timestamp && <p className="text-xs text-muted-foreground mt-1">{new Date(note.timestamp.seconds * 1000).toLocaleString()}</p>}
+                            </div>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteNote(note.id)}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         ))}
                          {notes?.length === 0 && !notesLoading && <p>You haven't taken any notes for this lesson yet.</p>}
