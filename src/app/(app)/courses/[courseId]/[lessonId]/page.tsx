@@ -5,7 +5,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronLeft, ChevronRight, CheckCircle, FileText, Video, BookText, PanelLeft } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle,
+  FileText,
+  Video,
+  BookText,
+  Notebook,
+  Menu,
+} from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 type LessonPageProps = {
   params: {
@@ -13,6 +27,33 @@ type LessonPageProps = {
     lessonId: string;
   };
 };
+
+function LessonSidebar({ course, currentLessonId }: { course: any, currentLessonId: string }) {
+    return (
+        <Card className="flex flex-col h-full">
+            <CardHeader>
+                <CardTitle>Lessons</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 flex-1">
+                <ScrollArea className="h-full">
+                    <ul className="space-y-1 p-4">
+                        {course.lessons.map((l: any) => (
+                            <li key={l.id}>
+                                <Link href={`/courses/${course.id}/${l.id}`}>
+                                    <div className={`flex items-center gap-3 p-3 rounded-md transition-colors ${l.id === currentLessonId ? 'bg-primary/10 text-primary' : 'hover:bg-muted/50'}`}>
+                                        {l.type === 'video' ? <Video className="h-4 w-4 flex-shrink-0" /> : <FileText className="h-4 w-4 flex-shrink-0" />}
+                                        <span className="text-sm truncate flex-1">{l.title}</span>
+                                        {l.id === currentLessonId && <CheckCircle className="h-4 w-4 ml-auto text-primary flex-shrink-0" />}
+                                    </div>
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                </ScrollArea>
+            </CardContent>
+        </Card>
+    );
+}
 
 export default function LessonPage({ params }: LessonPageProps) {
   const course = courses.find((c) => c.id === params.courseId);
@@ -26,108 +67,109 @@ export default function LessonPage({ params }: LessonPageProps) {
   const nextLesson = lessonIndex < course.lessons.length - 1 ? course.lessons[lessonIndex + 1] : null;
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 h-[calc(100vh-2*theme(spacing.6))]">
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        
-        <div className="flex items-center justify-between mb-4">
-            <Button variant="outline" asChild>
-                <Link href={`/courses/${course.id}`}>
-                    <ChevronLeft className="mr-2 h-4 w-4" />
-                    Back to Course
-                </Link>
-            </Button>
-            <h1 className="text-3xl font-bold font-headline text-center">{lesson.title}</h1>
-            <div></div>
-        </div>
-          
-          {lesson.type === "video" ? (
-            <div className="flex-1 flex flex-col overflow-hidden space-y-4">
-                <div className="aspect-video rounded-lg overflow-hidden flex-shrink-0">
-                  <iframe
-                      className="w-full h-full"
-                      src={`https://www.youtube.com/embed/${lesson.content}`}
-                      title="YouTube video player"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                  ></iframe>
-                </div>
-                {lesson.transcript && (
-                    <Card className="flex-1 flex flex-col overflow-hidden">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <BookText className="h-6 w-6" />
-                                Transcript
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex-1 overflow-y-auto">
-                            <p className="prose dark:prose-invert max-w-none">{lesson.transcript}</p>
-                        </CardContent>
-                    </Card>
-                )}
-            </div>
-          ) : (
-             <Card className="flex-1 overflow-hidden">
-                <CardContent className="p-6 h-full overflow-y-auto">
-                    <p className="prose dark:prose-invert max-w-none">{lesson.content}</p>
-                </CardContent>
-             </Card>
-          )}
+    <div className="flex h-screen bg-background">
+      {/* Left Sidebar - Lessons (Desktop) */}
+      <aside className="hidden lg:block w-80 xl:w-96 flex-shrink-0 border-r p-4">
+          <LessonSidebar course={course} currentLessonId={lesson.id} />
+      </aside>
 
-        <div className="flex justify-between items-center mt-4 pt-4 border-t flex-shrink-0">
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
+              <Sheet>
+                  <SheetTrigger asChild>
+                      <Button variant="outline" size="icon" className="lg:hidden">
+                          <Menu className="h-6 w-6" />
+                          <span className="sr-only">Open lesson menu</span>
+                      </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="p-4 w-full max-w-sm">
+                      <LessonSidebar course={course} currentLessonId={lesson.id} />
+                  </SheetContent>
+              </Sheet>
+              <Button variant="outline" size="sm" asChild>
+                  <Link href={`/courses/${course.id}`}>
+                      <ChevronLeft className="mr-2 h-4 w-4" />
+                      Back to Course
+                  </Link>
+              </Button>
+          </div>
+          <h1 className="text-xl md:text-2xl font-bold font-headline text-center truncate px-4">{lesson.title}</h1>
+          <Button size="sm">
+              <CheckCircle className="mr-2 h-4 w-4" />
+              <span className="hidden md:inline">Mark as Completed</span>
+          </Button>
+        </div>
+
+        <div className="flex-1 mb-4">
+            {lesson.type === "video" ? (
+                <div className="aspect-video rounded-lg overflow-hidden shadow-lg bg-black">
+                    <iframe
+                        className="w-full h-full"
+                        src={`https://www.youtube.com/embed/${lesson.content}`}
+                        title="YouTube video player"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                    ></iframe>
+                </div>
+            ) : (
+                <Card className="h-full">
+                    <CardContent className="p-6 h-full overflow-y-auto">
+                        <div className="prose dark:prose-invert max-w-none">{lesson.content}</div>
+                    </CardContent>
+                </Card>
+            )}
+        </div>
+
+        <div className="flex justify-between items-center mt-auto pt-4 border-t">
           {prevLesson ? (
             <Button variant="outline" asChild>
               <Link href={`/courses/${course.id}/${prevLesson.id}`}>
                 <ChevronLeft className="mr-2 h-4 w-4" /> Previous
               </Link>
             </Button>
-          ) : <div></div>}
-          <Button>
-              <CheckCircle className="mr-2 h-4 w-4" /> Mark as Completed
-          </Button>
+          ) : <div />}
           {nextLesson ? (
             <Button variant="outline" asChild>
               <Link href={`/courses/${course.id}/${nextLesson.id}`}>
                 Next <ChevronRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
-          ) : <div></div>}
+          ) : <div />}
         </div>
-      </div>
+      </main>
 
-      {/* Sidebar for notes and lesson list */}
-      <div className="w-full md:w-80 lg:w-96 flex flex-col gap-4">
-        <Card className="flex-1 flex flex-col">
-          <CardHeader>
-            <CardTitle>My Notes</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col">
-            <Textarea placeholder="Write your notes here..." className="flex-1" />
-            <Button className="mt-2">Save Note</Button>
-          </CardContent>
-        </Card>
-        <Card className="flex flex-col" style={{maxHeight: '35%'}}>
-           <CardHeader>
-            <CardTitle>Lessons</CardTitle>
-          </CardHeader>
-          <CardContent className="overflow-y-auto">
-             <ul className="space-y-1">
-                {course.lessons.map(l => (
-                    <li key={l.id}>
-                        <Link href={`/courses/${course.id}/${l.id}`}>
-                            <div className={`flex items-center gap-3 p-2 rounded-md transition-colors ${l.id === lesson.id ? 'bg-primary/10 text-primary' : 'hover:bg-muted/50'}`}>
-                                {l.type === 'video' ? <Video className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
-                                <span className="text-sm truncate">{l.title}</span>
-                                {l.id === lesson.id && <CheckCircle className="h-4 w-4 ml-auto text-primary" />}
-                            </div>
-                        </Link>
-                    </li>
-                ))}
-             </ul>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Right Sidebar - Notes & Transcript */}
+      <aside className="hidden md:block w-80 xl:w-96 flex-shrink-0 border-l p-4">
+        <div className="flex flex-col gap-4 h-full">
+            <Card className="flex-1 flex flex-col h-1/2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Notebook className="h-5 w-5" /> My Notes</CardTitle>
+              </CardHeader>
+              <CardContent className="flex-1 flex flex-col p-2">
+                <Textarea placeholder="Write your notes here..." className="flex-1 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0" />
+                <Button className="mt-2 w-full">Save Note</Button>
+              </CardContent>
+            </Card>
+
+            {lesson.transcript && (
+                <Card className="flex-1 flex flex-col h-1/2">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <BookText className="h-5 w-5" /> Transcript
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0 flex-1">
+                        <ScrollArea className="h-full">
+                           <p className="prose dark:prose-invert max-w-none text-sm p-4">{lesson.transcript}</p>
+                        </ScrollArea>
+                    </CardContent>
+                </Card>
+            )}
+        </div>
+      </aside>
     </div>
   );
 }

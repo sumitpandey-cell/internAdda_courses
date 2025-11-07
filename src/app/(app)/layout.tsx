@@ -49,7 +49,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
 
     const pathSegments = pathname.split('/').filter(Boolean);
-    const isLessonPage = pathSegments.length === 3 && pathSegments[0] === 'courses';
+    const isLessonPage = pathSegments[0] === 'courses' && pathSegments.length > 1 && courses.find(c => c.id === pathSegments[1])?.lessons.some(l => l.id === pathSegments[2]);
 
 
     const isActive = (path: string) => {
@@ -62,7 +62,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     if (isLessonPage) {
         return (
-             <main className="flex-1 p-4 sm:p-6 overflow-auto bg-background">
+             <main className="bg-background">
                 {children}
             </main>
         )
