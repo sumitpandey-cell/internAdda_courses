@@ -33,7 +33,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { mainUser } from "@/lib/data";
+import { mainUser, courses } from "@/lib/data";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -49,7 +49,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
 
     const pathSegments = pathname.split('/').filter(Boolean);
-    const isLessonPage = pathSegments[0] === 'courses' && pathSegments.length > 1 && courses.find(c => c.id === pathSegments[1])?.lessons.some(l => l.id === pathSegments[2]);
+    const isLessonPage = pathSegments[0] === 'courses' && pathSegments.length > 2 && courses.find(c => c.id === pathSegments[1])?.lessons.some(l => l.id === pathSegments[2]);
 
 
     const isActive = (path: string) => {
