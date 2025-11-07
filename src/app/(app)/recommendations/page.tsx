@@ -16,8 +16,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Bot, Loader2 } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+import { Bot, Loader2, Sparkles } from 'lucide-react';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, documentId } from 'firebase/firestore';
 import type { Course, UserProgress } from '@/lib/data-types';
@@ -29,7 +29,8 @@ const recommendationsSchema = z.object({
 
 export default function RecommendationsPage() {
   const [recommendedCourseIds, setRecommendedCourseIds] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const { firestore, user } = useFirebase();
 
   const progressQuery = useMemoFirebase(
@@ -58,9 +59,9 @@ export default function RecommendationsPage() {
 
   async function onSubmit(values: z.infer<typeof recommendationsSchema>) {
     if (!user) return;
-    setIsLoading(true);
-    // Don't reset IDs here, so the old recommendations remain while loading new ones
-    // setRecommendedCourseIds([]); 
+    setIsAiLoading(true);
+    setHasSearched(true);
+    setRecommendedCourseIds([]); // Reset previous recommendations immediately
 
     const enrolledCourseIds = userProgress?.map(p => p.courseId) || [];
 
@@ -71,22 +72,28 @@ export default function RecommendationsPage() {
     });
     
     setRecommendedCourseIds(ids);
-    setIsLoading(false);
+    setIsAiLoading(false);
   }
+  
+  const isLoading = isAiLoading || recommendationsLoading;
 
   return (
     <div className="space-y-8">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bot />
-            AI-Powered Recommendations
-          </CardTitle>
+      <Card className="overflow-hidden">
+        <CardHeader className="bg-muted/30">
+          <div className="flex items-center gap-3">
+             <div className="flex-shrink-0 bg-primary/10 text-primary p-3 rounded-full">
+                <Bot className="h-6 w-6" />
+             </div>
+             <div>
+                <CardTitle>AI-Powered Recommendations</CardTitle>
+                <CardDescription className="mt-1">
+                    Tell us what you're interested in learning, and our AI will suggest courses tailored just for you.
+                </CardDescription>
+             </div>
+          </div>
         </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground mb-4">
-            Tell us what you're interested in learning, and our AI will suggest courses tailored just for you. Consider mentioning your career goals, topics you enjoy, or skills you want to develop.
-          </p>
+        <CardContent className="p-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -94,48 +101,78 @@ export default function RecommendationsPage() {
                 name="preferences"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>My learning preferences</FormLabel>
+                    <FormLabel>My learning goals and interests</FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="e.g., 'I'm a frontend developer looking to learn backend technologies, especially Node.js and databases.' or 'I want to get into data science and machine learning.'"
+                        className="min-h-[100px]"
                         {...field}
                       />
                     </FormControl>
+                     <FormDescription>
+                      Consider mentioning your career goals, topics you enjoy, or skills you want to develop.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Get Recommendations
+              <Button type="submit" disabled={isAiLoading}>
+                {isAiLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                Generate My Recommendations
               </Button>
             </form>
           </Form>
         </CardContent>
       </Card>
-
-      {(isLoading || recommendationsLoading) && (
-        <div className="text-center py-12">
-            <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-            <p className="mt-2 text-muted-foreground">Our AI is thinking...</p>
+      
+      {isLoading && (
+         <div>
+            <h2 className="text-2xl font-bold font-headline mb-4">Our AI is thinking...</h2>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {[...Array(3)].map((_, i) => <CardSkeleton key={i} />)}
+            </div>
         </div>
       )}
 
-      {!isLoading && !recommendationsLoading && recommendations && recommendations.length > 0 && (
+      {!isLoading && hasSearched && (
         <div>
-          <h2 className="text-2xl font-bold font-headline mb-4">Here are some courses you might like:</h2>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {recommendations.map((course) => (
-              <CourseCard key={course.id} course={course} />
-            ))}
-          </div>
+          {recommendations && recommendations.length > 0 ? (
+            <div>
+              <h2 className="text-2xl font-bold font-headline mb-4">Here are some courses you might like:</h2>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {recommendations.map((course) => (
+                  <CourseCard key={course.id} course={course} />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-16 bg-muted/50 rounded-lg">
+                <div className="mx-auto h-12 w-12 text-muted-foreground" />
+                <h3 className="mt-4 text-lg font-semibold">No Recommendations Found</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                    The AI couldn't find any recommendations based on your preferences.
+                </p>
+                 <p className="text-sm text-muted-foreground">
+                    Try being more specific or broader in your description.
+                </p>
+            </div>
+          )}
         </div>
       )}
-       {!isLoading && !recommendationsLoading && recommendedCourseIds.length > 0 && recommendations?.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">
-            The AI couldn't find any recommendations based on your preferences. Try being more specific!
-          </div>
-        )}
+    </div>
+  );
+}
+
+
+function CardSkeleton() {
+  return (
+    <div className="space-y-4 rounded-xl border p-4">
+      <Skeleton className="h-40 w-full" />
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-8 w-full mt-4" />
+      </div>
     </div>
   );
 }
