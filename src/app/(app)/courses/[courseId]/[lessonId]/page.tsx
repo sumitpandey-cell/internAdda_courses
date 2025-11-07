@@ -82,8 +82,8 @@ export default function LessonPage() {
 
   const lessonIndex = lessons?.findIndex((l) => l.id === lessonId) ?? -1;
 
-  if (!courseLoading && !course) notFound();
-  if (!lessonLoading && !lesson) notFound();
+  // if (!courseLoading && !course) notFound();
+  // if (!lessonLoading && !lesson) notFound();
 
   const prevLesson = lessonIndex > 0 ? lessons?.[lessonIndex - 1] : null;
   const nextLesson = lessons && lessonIndex < lessons.length - 1 ? lessons[lessonIndex + 1] : null;

@@ -8,7 +8,7 @@ import { doc, collection, query, orderBy } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { PlayCircle, CheckCircle, Lock } from 'lucide-react';
+import { PlayCircle, CheckCircle, Lock, ArrowLeft } from 'lucide-react';
 import type { Course, Lesson, UserProgress } from '@/lib/data-types';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -36,9 +36,10 @@ export default function CoursePage() {
   const { data: lessons, isLoading: lessonsLoading } = useCollection<Lesson>(lessonsQuery);
   const { data: progress } = useDoc<UserProgress>(progressRef);
 
-  if (!courseLoading && !course) {
-    notFound();
-  }
+  // if (!courseLoading && !course) {
+  //   console.log(courseLoading)
+  //   notFound();
+  // }
 
   const firstLessonId = lessons?.[0]?.id;
   const startLink = isEnrolled && firstLessonId ? `/courses/${courseId}/${progress?.lastLessonId || firstLessonId}` : '#';
@@ -46,6 +47,14 @@ export default function CoursePage() {
 
   return (
     <div className="max-w-6xl mx-auto">
+      <div className="mb-6">
+        <Button variant="outline" asChild>
+          <Link href="/dashboard">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Dashboard
+          </Link>
+        </Button>
+      </div>
       <div className="grid md:grid-cols-3 gap-8">
         <div className="md:col-span-2 space-y-6">
           {courseLoading ? (
