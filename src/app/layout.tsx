@@ -4,8 +4,8 @@ import { FirebaseClientProvider } from '@/firebase';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'CourseFlow',
-  description: 'AI-Powered Course Management App',
+  title: 'InternAdda Courses',
+  description: 'Your gateway to top courses with InternAdda.',
 };
 
 export default function RootLayout({

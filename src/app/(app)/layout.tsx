@@ -75,7 +75,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const pageTitle =
     [...navItems, ...adminNavItems, ...instructorNavItems].find((item) => isActive(item.href))
-      ?.label || 'CourseFlow';
+      ?.label || 'InternAdda Courses';
 
   if (isUserLoading) {
     return (
@@ -106,7 +106,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-2 w-full p-2">
             <BookOpen className="h-8 w-8 text-primary" />
             <h2 className="text-xl font-bold font-headline group-data-[collapsible=icon]:hidden">
-              CourseFlow
+              InternAdda Courses
             </h2>
           </div>
         </SidebarHeader>

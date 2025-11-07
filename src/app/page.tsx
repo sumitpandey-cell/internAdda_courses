@@ -19,7 +19,7 @@ const testimonials = [
   {
     name: 'Sarah L.',
     role: 'Software Engineer',
-    testimonial: 'CourseFlow has been a game-changer for my career. The AI recommendations are spot on, and I\'ve learned so much!',
+    testimonial: 'InternAdda Courses has been a game-changer for my career. The courses are top-notch and I\'ve learned so much!',
     avatar: 'https://picsum.photos/seed/avatar1/100/100',
   },
   {
@@ -54,10 +54,10 @@ export default function Home() {
               <div className="flex flex-col justify-center space-y-4">
                 <div className="space-y-4">
                   <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
-                    Unlock Your Potential with CourseFlow
+                    Unlock Your Potential with InternAdda Courses
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                    Our AI-powered platform provides a personalized learning journey. Explore courses, track your progress, and achieve your goals.
+                    Our platform provides a personalized learning journey. Explore courses, track your progress, and achieve your goals.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
@@ -90,7 +90,7 @@ export default function Home() {
                 <div className="inline-block rounded-lg bg-muted px-3 py-1 text-sm">Key Features</div>
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">A Better Way to Learn</h2>
                 <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  CourseFlow is packed with features designed to enhance your learning experience and help you succeed.
+                  InternAdda Courses is packed with features designed to enhance your learning experience and help you succeed.
                 </p>
               </div>
             </div>
@@ -161,7 +161,7 @@ export default function Home() {
               Loved by Learners Worldwide
             </h2>
             <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl text-center mt-4">
-              Hear what our students have to say about their journey with CourseFlow.
+              Hear what our students have to say about their journey with InternAdda Courses.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
               {testimonials.map((testimonial, index) => (

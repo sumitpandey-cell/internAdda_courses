@@ -75,7 +75,7 @@ export default function SignupPage() {
         <CardHeader className="text-center">
           <div className="flex justify-center items-center mb-4">
             <BookOpen className="h-8 w-8 text-primary" />
-            <h1 className="ml-2 text-2xl font-bold font-headline">CourseFlow</h1>
+            <h1 className="ml-2 text-2xl font-bold font-headline">InternAdda Courses</h1>
           </div>
           <CardTitle className="text-2xl">Create an Account</CardTitle>
           <CardDescription>Start your learning journey with us</CardDescription>
