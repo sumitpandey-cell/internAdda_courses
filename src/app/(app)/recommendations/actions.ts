@@ -8,6 +8,7 @@ import { collection, getDocs, query } from 'firebase/firestore';
 import { getSdks } from '@/firebase';
 import { initializeApp, getApps } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
+import type { Course } from '@/lib/data-types';
 
 // Server-side Firebase initialization
 function initializeFirebaseServer() {
@@ -20,28 +21,35 @@ function initializeFirebaseServer() {
 
 
 export async function getRecommendations(
-  input: Omit<PersonalizedCourseRecommendationsInput, 'allCourseIds'>
+  input: Omit<PersonalizedCourseRecommendationsInput, 'allCourses'>
 ): Promise<string[]> {
   try {
     const { firestore } = initializeFirebaseServer();
     
-    // Fetch all course IDs to give the AI a list of possibilities
+    // Fetch all courses to give the AI a list of possibilities
     const coursesSnapshot = await getDocs(collection(firestore, 'courses'));
-    const allCourseIds = coursesSnapshot.docs.map(doc => doc.id);
+    const allCourses = coursesSnapshot.docs.map(doc => doc.data() as Course);
 
-    if (allCourseIds.length === 0) {
+    if (allCourses.length === 0) {
       console.log("No courses found in the database.");
       return [];
     }
     
-    const result = await getPersonalizedCourseRecommendations({ ...input, allCourseIds });
+    const allCoursesInfo = allCourses.map(c => ({
+        id: c.id,
+        title: c.title,
+        description: c.description
+    }));
+    
+    const result = await getPersonalizedCourseRecommendations({ ...input, allCourses: allCoursesInfo });
     
     if (!result || !result.courseRecommendations) {
         console.error("AI did not return valid recommendations.");
         return [];
     }
     
-    // Validate recommendations against existing courses
+    // The validation is now handled inside the flow, but we can double-check here.
+    const allCourseIds = allCourses.map(c => c.id);
     const validRecommendations = result.courseRecommendations.filter(id => allCourseIds.includes(id));
 
     return validRecommendations;
