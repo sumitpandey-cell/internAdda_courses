@@ -1,14 +1,14 @@
 'use server';
 
 import {
-  getPersonalizedCourseRecommendations,
-  type PersonalizedCourseRecommendationsInput,
-} from '@/ai/flows/personalized-course-recommendations';
+  getCourseRecommendations,
+  type CourseChatRequest
+} from '@/ai/flows/course-chat-flow';
 import { collection, getDocs, query } from 'firebase/firestore';
 import { getSdks } from '@/firebase';
 import { initializeApp, getApps } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
-import type { Course } from '@/lib/data-types';
+import type { Course, ChatMessage } from '@/lib/data-types';
 
 // Server-side Firebase initialization
 function initializeFirebaseServer() {
@@ -20,42 +20,52 @@ function initializeFirebaseServer() {
 }
 
 
-export async function getRecommendations(
-  input: Omit<PersonalizedCourseRecommendationsInput, 'allCourses'>
-): Promise<string[]> {
+export async function getCourseChatResponse(
+  message: string,
+  history: Array<{role: 'user' | 'model', content: string}>
+): Promise<ChatMessage | null> {
   try {
     const { firestore } = initializeFirebaseServer();
     
-    // Fetch all courses to give the AI a list of possibilities
     const coursesSnapshot = await getDocs(collection(firestore, 'courses'));
     const allCourses = coursesSnapshot.docs.map(doc => doc.data() as Course);
 
     if (allCourses.length === 0) {
       console.log("No courses found in the database.");
-      return [];
+      return {
+        role: 'model',
+        content: "I couldn't find any courses in the database to recommend."
+      };
     }
     
-    const allCoursesInfo = allCourses.map(c => ({
-        id: c.id,
-        title: c.title,
-        description: c.description
-    }));
-    
-    const result = await getPersonalizedCourseRecommendations({ ...input, allCourses: allCoursesInfo });
-    
-    if (!result || !result.courseRecommendations) {
-        console.error("AI did not return valid recommendations.");
-        return [];
+    const input: CourseChatRequest = {
+        history,
+        message,
+        availableCourses: allCourses,
     }
     
-    // The validation is now handled inside the flow, but we can double-check here.
-    const allCourseIds = allCourses.map(c => c.id);
-    const validRecommendations = result.courseRecommendations.filter(id => allCourseIds.includes(id));
+    const result = await getCourseRecommendations(input);
+    
+    if (!result) {
+        console.error("AI did not return a valid response.");
+        return {
+            role: 'model',
+            content: "Sorry, I had trouble processing that request. Please try again."
+        }
+    }
 
-    return validRecommendations;
+    return {
+        role: 'model',
+        content: result.response,
+        audioBase64: result.audioBase64,
+        recommendedCourseIds: result.recommendedCourseIds,
+    }
+    
   } catch (error) {
     console.error('Error getting recommendations:', error);
-    // In case of an AI error, return an empty array or handle it gracefully.
-    return [];
+    return {
+        role: 'model',
+        content: "I'm sorry, I encountered an error while trying to generate a recommendation."
+    }
   }
 }

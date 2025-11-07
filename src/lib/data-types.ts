@@ -44,3 +44,10 @@ export type Note = {
   content: string;
   timestamp: any; // Firestore timestamp
 }
+
+export interface ChatMessage {
+  role: 'user' | 'model';
+  content: string;
+  recommendedCourseIds?: string[];
+  audioBase64?: string;
+}
