@@ -22,6 +22,7 @@ import {
     SidebarProvider,
     SidebarTrigger,
     SidebarInset,
+    SidebarRail,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -146,6 +147,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </SidebarFooter>
+                 <SidebarRail />
             </Sidebar>
             <SidebarInset>
                  <header className="flex h-14 items-center gap-4 border-b bg-background/50 px-4 sm:px-6 backdrop-blur-sm sticky top-0 z-10">
