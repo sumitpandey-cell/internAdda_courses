@@ -95,6 +95,7 @@ const courseRecommendationFlow = ai.defineFlow(
   async (input) => {
     try {
       const { output } = await ai.generate({
+        model: 'googleai/gemini-2.5-flash',
         prompt: `You are a friendly and encouraging AI career guider on the CourseFlow platform. Your main purpose is to have a natural, supportive conversation with students about their career aspirations and learning paths.
 
 - Your primary role is to be a guide and a mentor, not just a course recommender. Engage in a normal, free-flowing conversation.
@@ -117,7 +118,6 @@ AVAILABLE COURSES:
 {{/each}}
 `,
         config: {
-          // Instruct the model to always return JSON
           output: {
             format: 'json',
             schema: CourseChatResponseSchema,
