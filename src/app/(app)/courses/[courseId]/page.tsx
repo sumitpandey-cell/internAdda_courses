@@ -41,7 +41,8 @@ export default function CoursePage() {
   }
 
   const firstLessonId = lessons?.[0]?.id;
-  const startLink = `/courses/${courseId}/${progress?.lastLessonId || firstLessonId}`;
+  const startLink = isEnrolled && firstLessonId ? `/courses/${courseId}/${progress?.lastLessonId || firstLessonId}` : '#';
+
 
   return (
     <div className="max-w-6xl mx-auto">

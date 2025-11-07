@@ -10,7 +10,7 @@ import {
   useMemoFirebase,
   setDocumentNonBlocking,
 } from '@/firebase';
-import { doc, collection, query, orderBy, where } from 'firebase/firestore';
+import { doc, collection, query, orderBy, where, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -132,7 +132,7 @@ export default function LessonPage() {
       userId: user.uid,
       lessonId,
       content: noteContent,
-      timestamp: new Date(),
+      timestamp: serverTimestamp(),
     }, {});
     setNoteContent('');
   };
@@ -291,7 +291,7 @@ export default function LessonPage() {
                         {notes?.map(note => (
                           <div key={note.id} className="p-2 border rounded-md">
                             <p>{note.content}</p>
-                            <p className="text-xs text-muted-foreground mt-1">{new Date(note.timestamp.seconds * 1000).toLocaleString()}</p>
+                            {note.timestamp && <p className="text-xs text-muted-foreground mt-1">{new Date(note.timestamp.seconds * 1000).toLocaleString()}</p>}
                           </div>
                         ))}
                          {notes?.length === 0 && !notesLoading && <p>You haven't taken any notes for this lesson yet.</p>}
@@ -321,24 +321,22 @@ export default function LessonPage() {
                 <div />
               )}
               {nextLesson ? (
-                <Button variant="default" asChild>
-                  <Link href={`/courses/${courseId}/${nextLesson.id}`}>
-                    Next Lesson <ChevronRight className="ml-2 h-4 w-4" />
-                  </Link>
+                <Button variant="default" onClick={handleMarkComplete}>
+                  Mark Complete & Next <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
               ) : (
-                <div />
+                 <Button
+                    variant={isCompleted ? 'secondary' : 'default'}
+                    size="lg"
+                    className="w-full max-w-sm"
+                    onClick={handleMarkComplete}
+                    >
+                    <CheckCircle className="mr-2 h-5 w-5" />
+                    {isCompleted ? 'Completed' : 'Mark as Complete'}
+                </Button>
               )}
             </div>
-            <Button
-              variant={isCompleted ? 'secondary' : 'outline'}
-              size="lg"
-              className="w-full max-w-sm"
-              onClick={handleMarkComplete}
-            >
-              <CheckCircle className="mr-2 h-5 w-5" />
-              {isCompleted ? 'Completed' : 'Mark as Complete'}
-            </Button>
+           
           </div>
         </ScrollArea>
       </main>
