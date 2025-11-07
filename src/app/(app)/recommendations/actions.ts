@@ -19,6 +19,7 @@ export async function getCourseChatResponse(
         content: "I couldn't find any courses in the database to recommend."
       };
     }
+    console.log("Hello")
     
     const input: CourseChatRequest = {
         history,
@@ -27,7 +28,7 @@ export async function getCourseChatResponse(
     }
     
     const result = await getCourseRecommendations(input);
-    
+
     if (!result) {
         console.error("AI did not return a valid response.");
         return {

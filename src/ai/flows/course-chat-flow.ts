@@ -6,14 +6,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import {
-  getFirestore,
-  collection,
-  getDocs,
-  query,
-} from 'firebase/firestore';
-import { getApps, initializeApp } from 'firebase/app';
-import { firebaseConfig } from '@/firebase/config';
 import type { Course } from '@/lib/data-types';
 import wav from 'wav';
 
@@ -48,38 +40,47 @@ export type CourseChatResponse = z.infer<typeof CourseChatResponseSchema>;
 export async function getCourseRecommendations(
   input: CourseChatRequest
 ): Promise<CourseChatResponse & { audioBase64?: string }> {
-  const result = await courseRecommendationFlow(input);
-  
-  if (!result.response) {
-      return { ...result, response: "I'm sorry, I could not generate a response." };
-  }
+  try {
+    const result = await courseRecommendationFlow(input);
+    
+    if (!result.response) {
+        return { ...result, response: "I'm sorry, I could not generate a response." };
+    }
 
-  // Generate audio from the text response
-  const { media } = await ai.generate({
-    model: 'googleai/gemini-2.5-flash-preview-tts',
-    config: {
-      responseModalities: ['AUDIO'],
-      speechConfig: {
-        voiceConfig: {
-          prebuiltVoiceConfig: { voiceName: 'Algenib' },
+    // Generate audio from the text response
+    const { media } = await ai.generate({
+      model: 'googleai/gemini-2.5-flash-preview-tts',
+      config: {
+        responseModalities: ['AUDIO'],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: { voiceName: 'Algenib' },
+          },
         },
       },
-    },
-    prompt: result.response,
-  });
+      prompt: result.response,
+    });
 
-  if (!media) {
-    return result; // Return text response if audio generation fails
+    if (!media) {
+      return result; // Return text response if audio generation fails
+    }
+
+    const audioBuffer = Buffer.from(
+      media.url.substring(media.url.indexOf(',') + 1),
+      'base64'
+    );
+
+    const audioBase64 = await toWav(audioBuffer);
+    
+    return { ...result, audioBase64 };
+  } catch (e) {
+    console.error("Error in getCourseRecommendations:", e);
+    // Return a user-friendly error response, but do not re-throw
+    return {
+      response: "I'm sorry, I encountered an internal error. Please try again later.",
+      recommendedCourseIds: []
+    };
   }
-
-  const audioBuffer = Buffer.from(
-    media.url.substring(media.url.indexOf(',') + 1),
-    'base64'
-  );
-
-  const audioBase64 = await toWav(audioBuffer);
-  
-  return { ...result, audioBase64 };
 }
 
 // Define the Genkit flow
@@ -90,8 +91,9 @@ const courseRecommendationFlow = ai.defineFlow(
     outputSchema: CourseChatResponseSchema,
   },
   async (input) => {
-    const { output } = await ai.generate({
-      prompt: `You are 'CourseBot', a friendly and helpful AI course advisor for the CourseFlow platform. Your goal is to have a natural conversation with the user, understand their learning goals, and recommend relevant courses when appropriate.
+    try {
+        const {output} = await ai.generate({
+        prompt: `You are 'CourseBot', a friendly and helpful AI course advisor for the CourseFlow platform. Your goal is to have a natural conversation with the user, understand their learning goals, and recommend relevant courses when appropriate.
 
 - Be conversational and engaging.
 - If the user asks for recommendations, suggest 1-3 courses from the provided list.
@@ -112,31 +114,37 @@ AVAILABLE COURSES:
 - ID: {{{this.id}}}, Title: {{{this.title}}}, Description: {{{this.description}}}
 {{/each}}
 `,
-      config: {
-          // Instruct the model to always return JSON
-          response: {
-              format: 'json',
-              schema: CourseChatResponseSchema
-          }
-      },
-      context: {
-        message: input.message,
-        history: input.history,
-        availableCourses: input.availableCourses
-      },
-    });
+        config: {
+            // Instruct the model to always return JSON
+            response: {
+                format: 'json',
+                schema: CourseChatResponseSchema
+            }
+        },
+        context: {
+            message: input.message,
+            history: input.history,
+            availableCourses: input.availableCourses
+        },
+        });
 
-    if (!output) {
-      return { response: "I'm sorry, I had trouble processing that request. Please try again." };
+        if (!output) {
+            console.error("AI generation returned no output.");
+            return { response: "I'm sorry, I had trouble processing that request. Please try again." };
+        }
+
+        // Safeguard to ensure IDs are valid
+        if (output.recommendedCourseIds) {
+            const allCourseIds = input.availableCourses.map(c => c.id);
+            output.recommendedCourseIds = output.recommendedCourseIds.filter(id => allCourseIds.includes(id));
+        }
+
+        return output;
+    } catch(e) {
+        console.error("Error within courseRecommendationFlow:", e);
+        // We throw the error here so it can be caught by the calling function `getCourseRecommendations`
+        throw e;
     }
-
-    // Safeguard to ensure IDs are valid
-    if (output.recommendedCourseIds) {
-        const allCourseIds = input.availableCourses.map(c => c.id);
-        output.recommendedCourseIds = output.recommendedCourseIds.filter(id => allCourseIds.includes(id));
-    }
-
-    return output;
   }
 );
 
