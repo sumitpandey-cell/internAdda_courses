@@ -36,6 +36,7 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Course, Lesson, UserProgress, Note } from '@/lib/data-types';
 import { Textarea } from '@/components/ui/textarea';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 export default function LessonPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -145,22 +146,8 @@ export default function LessonPage() {
       deleteDocumentNonBlocking(noteRef);
   }
 
-
-  return (
-    <div
-      className={cn(
-        'grid min-h-screen bg-background text-foreground transition-all duration-300',
-        isSidebarOpen ? 'md:grid-cols-[350px_1fr]' : 'md:grid-cols-[0px_1fr]'
-      )}
-    >
-      {/* Left Sidebar */}
-      <aside
-        className={cn(
-          'bg-card flex flex-col h-screen overflow-hidden transition-all duration-300',
-          isSidebarOpen ? 'w-[350px]' : 'w-0'
-        )}
-      >
-        <ScrollArea className="flex-1">
+  const SidebarContent = () => (
+    <ScrollArea className="flex-1">
           <div className="p-6 border-b">
             <Button
               variant="ghost"
@@ -238,20 +225,52 @@ export default function LessonPage() {
             )}
           </div>
         </ScrollArea>
+  );
+
+
+  return (
+    <div className="flex min-h-screen bg-background text-foreground">
+      {/* Desktop Sidebar */}
+      <aside
+        className={cn(
+          'bg-card flex-col h-screen overflow-hidden transition-all duration-300 hidden md:flex',
+          isSidebarOpen ? 'w-[350px]' : 'w-0'
+        )}
+      >
+        <SidebarContent />
       </aside>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col h-screen relative">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="absolute top-4 left-4 z-10 bg-background/50 backdrop-blur-sm"
-        >
-          <PanelLeft className="h-5 w-5" />
-        </Button>
+         <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+            {/* Mobile Sidebar Trigger */}
+             <Sheet>
+                <SheetTrigger asChild>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="md:hidden bg-background/50 backdrop-blur-sm"
+                    >
+                        <PanelLeft className="h-5 w-5" />
+                    </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="p-0 w-[300px]">
+                    <SidebarContent />
+                </SheetContent>
+            </Sheet>
+
+            {/* Desktop Sidebar Toggle */}
+            <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className="hidden md:flex bg-background/50 backdrop-blur-sm"
+            >
+                <PanelLeft className="h-5 w-5" />
+            </Button>
+        </div>
         <ScrollArea className="flex-1">
-          <div className="flex-1 p-6 md:p-8 lg:p-12">
+          <div className="flex-1 p-6 md:p-8 lg:p-12 mt-12 md:mt-0">
             {lessonLoading ? (
                 <Skeleton className="aspect-video rounded-lg w-full mb-8" />
             ) : (
