@@ -105,8 +105,10 @@ export default function LessonPage() {
     let newCompletedLessons = [...completedLessons];
 
     if (isCompleted) {
+      // If already completed, toggle it off (optional behavior, useful for review)
       newCompletedLessons = newCompletedLessons.filter(id => id !== lessonId);
     } else {
+      // If not completed, add it to the list
       if (!newCompletedLessons.includes(lessonId)) {
         newCompletedLessons.push(lessonId);
       }
@@ -127,8 +129,12 @@ export default function LessonPage() {
     
     if (nextLesson) {
       router.push(`/courses/${courseId}/lesson/${nextLesson.id}`);
+    } else if (percentage === 100 && !isCompleted) {
+      // If it's the last lesson and it's being marked complete for the first time
+      router.push(`/courses/${courseId}/completed`);
     }
   };
+
 
   const handleSaveNote = () => {
     if (!firestore || !user || !lessonId || !noteContent) return;
@@ -343,9 +349,9 @@ export default function LessonPage() {
             </Tabs>
           </div>
 
-          <div className="sticky bottom-0 bg-background/80 backdrop-blur-sm border-t p-4 flex flex-col items-center">
+          <div className="sticky bottom-0 bg-background/80 backdrop-blur-sm border-t p-4 flex items-center justify-center">
              {user && (
-                <div className="w-full max-w-4xl flex justify-between items-center mb-4">
+                <div className="w-full max-w-4xl flex justify-between items-center">
                 {prevLesson ? (
                     <Button variant="outline" asChild>
                     <Link href={`/courses/${courseId}/lesson/${prevLesson.id}`}>
@@ -353,23 +359,32 @@ export default function LessonPage() {
                     </Link>
                     </Button>
                 ) : (
-                    <div />
+                    <div /> /* Placeholder to keep spacing consistent */
                 )}
-                {nextLesson ? (
-                    <Button variant="default" onClick={handleMarkComplete}>
-                    Mark Complete & Next <ChevronRight className="ml-2 h-4 w-4" />
-                    </Button>
-                ) : (
-                    <Button
-                        variant={isCompleted ? 'secondary' : 'default'}
-                        size="lg"
-                        className="w-full max-w-sm"
-                        onClick={handleMarkComplete}
-                        >
+
+                <Button
+                    variant={isCompleted && !nextLesson ? 'secondary' : 'default'}
+                    onClick={handleMarkComplete}
+                    className="flex-grow max-w-sm"
+                    >
+                    {nextLesson ? (
+                        <>
+                        Mark as Complete & Next <ChevronRight className="ml-2 h-4 w-4" />
+                        </>
+                    ) : (
+                        <>
                         <CheckCircle className="mr-2 h-5 w-5" />
-                        {isCompleted ? 'Completed' : 'Mark as Complete'}
-                    </Button>
-                )}
+                        {isCompleted ? 'Course Completed' : 'Finish Course'}
+                        </>
+                    )}
+                </Button>
+                
+                 {nextLesson ? (
+                    <div/> /* Placeholder to keep spacing consistent */
+                 ) : (
+                    <div className="w-[105px]"/> // Match approx width of prev button
+                 )}
+
                 </div>
             )}
            
