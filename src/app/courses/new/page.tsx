@@ -6,8 +6,8 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import { useFirebase, addDocumentNonBlocking, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc, setDoc } from 'firebase/firestore';
+import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
+import { collection, doc, setDoc, addDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -144,26 +144,26 @@ export default function NewCoursePage() {
       for (let i = 0; i < data.lessons.length; i++) {
         const lesson = data.lessons[i];
         const lessonCollectionRef = collection(firestore, `courses/${courseId}/lessons`);
-        const lessonRef = doc(lessonCollectionRef);
         
-        await setDoc(lessonRef, {
-          id: lessonRef.id, courseId: courseId, title: lesson.title, type: lesson.type,
+        const lessonDoc = await addDoc(lessonCollectionRef, {
+          courseId: courseId, title: lesson.title, type: lesson.type,
           content: lesson.content, duration: lesson.duration, order: i + 1, transcript: lesson.transcript,
         });
+        await setDoc(lessonDoc, { id: lessonDoc.id }, { merge: true });
       }
       
       // Save questions
       for (let i = 0; i < data.questions.length; i++) {
         const question = data.questions[i];
         const questionCollectionRef = collection(firestore, `courses/${courseId}/questions`);
-        const questionRef = doc(questionCollectionRef);
         const questionOptions = (question.type === 'mcq' && question.options) ? question.options.split(',').map(o => o.trim()) : [];
         
-        await setDoc(questionRef, {
-          id: questionRef.id, courseId: courseId, text: question.text, type: question.type,
+        const questionDoc = await addDoc(questionCollectionRef, {
+          courseId: courseId, text: question.text, type: question.type,
           options: questionOptions,
           correctAnswer: question.correctAnswer, order: i + 1,
         });
+        await setDoc(questionDoc, { id: questionDoc.id }, { merge: true });
       }
 
 
@@ -573,5 +573,3 @@ export default function NewCoursePage() {
     </div>
   );
 }
-
-    
