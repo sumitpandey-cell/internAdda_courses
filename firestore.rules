@@ -87,22 +87,21 @@ service cloud.firestore {
      */
     match /courses/{courseId}/lessons/{lessonId} {
         allow get, list: if true;
-        allow create: if isSignedIn();
+        allow create: if isSignedIn() && get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid;
         allow update, delete: if isCourseInstructor(courseId);
     }
 
     /**
      * @description Enforces rules for questions within a course.
-     * Students need to be able to list questions to take the test.
      */
     match /courses/{courseId}/questions/{questionId} {
         allow get: if isSignedIn();
-        allow create: if isSignedIn();
+        allow create: if isSignedIn() && get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid;
         allow update, delete: if isCourseInstructor(courseId);
         // Explicitly disallow list on a single document path
-        allow list: if false; 
+        allow list: if false;
     }
-    
+
     // This rule is separate to apply `list` to the entire collection
     match /courses/{courseId}/questions {
         allow list: if isSignedIn();
@@ -128,7 +127,7 @@ service cloud.firestore {
       allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
       allow delete: if isExistingOwner(userId);
     }
-    
+
     /**
      * @description Enforces rules for user test attempts.
      */
