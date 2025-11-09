@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -42,7 +43,7 @@ export default function CoursesPage() {
               Complete any free course, pass the final exam, and unlock the path to a high-stipend internship.
             </p>
             <Button asChild size="lg" className="mt-4">
-              <Link href="#">View Internship Programs</Link>
+              <Link href="https://www.internadda.com/intern/internship" target="_blank" rel="noopener noreferrer">View Internship Programs</Link>
             </Button>
           </div>
         </section>
@@ -103,7 +104,7 @@ export default function CoursesPage() {
 
 function CardSkeleton() {
   return (
-    <div className="space-y-4 p-4 border rounded-lg">
+    <div className="space-y-4 p-4 border rounded-lg bg-card">
       <Skeleton className="h-40 w-full" />
       <div className="space-y-2">
         <Skeleton className="h-4 w-3/4" />
