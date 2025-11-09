@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Award } from 'lucide-react';
 import type { Course } from '@/lib/data-types';
 import { cn } from '@/lib/utils';
 
