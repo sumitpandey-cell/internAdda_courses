@@ -95,9 +95,17 @@ service cloud.firestore {
      * Students need to be able to list questions to take the test.
      */
     match /courses/{courseId}/questions/{questionId} {
-        allow list, get: if isSignedIn();
+        allow get: if isSignedIn();
         allow create, update, delete: if isCourseInstructor(courseId);
+        // Explicitly disallow list on a single document path
+        allow list: if false; 
     }
+    
+    // This rule is separate to apply `list` to the entire collection
+    match /courses/{courseId}/questions {
+        allow list: if isSignedIn();
+    }
+
 
     /**
      * @description Enforces rules for user progress tracking.
