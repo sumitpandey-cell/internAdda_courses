@@ -34,7 +34,6 @@ const AccordionTrigger = React.forwardRef<
       {...props}
     >
       {children}
-      {/* Do not render the icon if asChild is used, as the child will have its own icon logic */}
       {!props.asChild && <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />}
     </AccordionPrimitive.Trigger>
   </AccordionPrimitive.Header>

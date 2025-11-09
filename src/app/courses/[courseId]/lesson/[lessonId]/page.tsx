@@ -30,6 +30,7 @@ import {
   BookOpen,
   PanelLeft,
   Trash2,
+  ChevronDown,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -167,7 +168,7 @@ export default function LessonPage() {
               <h1 className="text-xl font-bold font-headline">{course?.title}</h1>
             )}
             <div className="mt-4 space-y-2">
-              {progressLoading ? (
+              {progressLoading || !user ? (
                 <>
                   <Skeleton className="h-2 w-full" />
                   <Skeleton className="h-4 w-1/4" />
@@ -203,13 +204,11 @@ export default function LessonPage() {
                   return (
                     <AccordionItem key={l.id} value={`item-${index}`}>
                       <AccordionTrigger
-                        className={cn('w-full', l.id === lessonId ? 'text-primary' : '')}
+                        className={cn('w-full hover:no-underline', l.id === lessonId ? 'text-primary' : '')}
                         asChild
                       >
-                         <Link
-                            href={`/courses/${courseId}/lesson/${l.id}`}
-                            className="flex items-center justify-between w-full"
-                          >
+                        <Link href={`/courses/${courseId}/lesson/${l.id}`}>
+                           <div className="flex items-center justify-between w-full">
                             <div className="flex items-center gap-3 flex-1">
                                 {isLessonCompleted ? (
                                     <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
@@ -220,6 +219,8 @@ export default function LessonPage() {
                                     {l.title}
                                 </span>
                             </div>
+                             <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+                           </div>
                         </Link>
                       </AccordionTrigger>
                       <AccordionContent className="text-sm text-muted-foreground pl-10">
@@ -234,8 +235,8 @@ export default function LessonPage() {
         </ScrollArea>
   );
 
-  // While checking auth state or if user is not logged in, render loading or null.
-  if (isUserLoading || !user) {
+  // While checking auth state, render loading.
+  if (isUserLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -333,15 +334,16 @@ export default function LessonPage() {
                             </Button>
                           </div>
                         ))}
-                         {notes?.length === 0 && !notesLoading && <p>You haven't taken any notes for this lesson yet.</p>}
+                         {(!user || (notes?.length === 0 && !notesLoading)) && <p>You haven't taken any notes for this lesson yet. Log in to save your notes.</p>}
                      </div>
                     <Textarea 
                       value={noteContent}
                       onChange={(e) => setNoteContent(e.target.value)}
-                      placeholder="Take a note..."
+                      placeholder={user ? "Take a note..." : "Log in to take notes."}
                       className="mt-4"
+                      disabled={!user}
                     />
-                    <Button onClick={handleSaveNote} disabled={!noteContent.trim()}>Save Note</Button>
+                    <Button onClick={handleSaveNote} disabled={!noteContent.trim() || !user}>Save Note</Button>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -349,32 +351,34 @@ export default function LessonPage() {
           </div>
 
           <div className="sticky bottom-0 bg-background/80 backdrop-blur-sm border-t p-4 flex flex-col items-center">
-            <div className="w-full max-w-4xl flex justify-between items-center mb-4">
-              {prevLesson ? (
-                <Button variant="outline" asChild>
-                  <Link href={`/courses/${courseId}/lesson/${prevLesson.id}`}>
-                    <ChevronLeft className="mr-2 h-4 w-4" /> Previous
-                  </Link>
-                </Button>
-              ) : (
-                <div />
-              )}
-              {nextLesson ? (
-                <Button variant="default" onClick={handleMarkComplete}>
-                  Mark Complete & Next <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-              ) : (
-                 <Button
-                    variant={isCompleted ? 'secondary' : 'default'}
-                    size="lg"
-                    className="w-full max-w-sm"
-                    onClick={handleMarkComplete}
-                    >
-                    <CheckCircle className="mr-2 h-5 w-5" />
-                    {isCompleted ? 'Completed' : 'Mark as Complete'}
-                </Button>
-              )}
-            </div>
+             {user && (
+                <div className="w-full max-w-4xl flex justify-between items-center mb-4">
+                {prevLesson ? (
+                    <Button variant="outline" asChild>
+                    <Link href={`/courses/${courseId}/lesson/${prevLesson.id}`}>
+                        <ChevronLeft className="mr-2 h-4 w-4" /> Previous
+                    </Link>
+                    </Button>
+                ) : (
+                    <div />
+                )}
+                {nextLesson ? (
+                    <Button variant="default" onClick={handleMarkComplete}>
+                    Mark Complete & Next <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
+                ) : (
+                    <Button
+                        variant={isCompleted ? 'secondary' : 'default'}
+                        size="lg"
+                        className="w-full max-w-sm"
+                        onClick={handleMarkComplete}
+                        >
+                        <CheckCircle className="mr-2 h-5 w-5" />
+                        {isCompleted ? 'Completed' : 'Mark as Complete'}
+                    </Button>
+                )}
+                </div>
+            )}
            
           </div>
         </ScrollArea>
