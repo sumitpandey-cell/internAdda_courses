@@ -50,7 +50,7 @@ export function CourseProgressCard({ course, progress }: CourseProgressCardProps
       </CardContent>
       <CardFooter className="p-4 pt-0">
         <Button asChild className="w-full">
-          <Link href={`/courses/${course.id}/${lastLessonId}`}>
+          <Link href={`/courses/${course.id}/lesson/${lastLessonId}`}>
             <PlayCircle className="mr-2 h-4 w-4" />
             Resume
           </Link>
