@@ -94,7 +94,7 @@ service cloud.firestore {
      * @description Enforces rules for questions within a course.
      */
     match /courses/{courseId}/questions/{questionId} {
-        allow get, list: if true;
+        allow get, list: if isSignedIn();
         allow create, update, delete: if isCourseInstructor(courseId);
     }
 
