@@ -23,53 +23,57 @@ export const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(
       <div
         ref={ref}
         className={cn(
-          'w-[1000px] h-[700px] bg-white text-gray-800 p-8 flex flex-col items-center justify-center border-4 border-yellow-500 relative font-serif',
+          'w-[1000px] h-[700px] bg-slate-50 text-gray-800 p-8 flex flex-col items-center justify-center border-8 border-yellow-600/80 relative',
           className
         )}
         style={{ fontFamily: '"Garamond", "Times New Roman", serif' }}
         {...props}
       >
         {/* Ornate Border */}
-        <div className="absolute inset-0 border-2 border-yellow-600 m-2"></div>
-        <div className="absolute inset-0 border-1 border-yellow-700 m-4"></div>
+        <div className="absolute inset-0 border-2 border-yellow-700/80 m-2"></div>
+        <div className="absolute inset-0 border border-yellow-800/80 m-4"></div>
 
-        <div className="text-center z-10">
+        <div className="text-center z-10 w-full">
           <div className="flex justify-center items-center mb-4">
-            <BookOpen className="h-12 w-12 text-primary" />
-            <h1 className="ml-3 text-3xl font-bold font-headline text-primary" style={{fontFamily: "Inter, sans-serif"}}>Internadda Courses</h1>
+            <BookOpen className="h-10 w-10 text-primary" />
+            <h1 className="ml-3 text-2xl font-bold text-primary" style={{fontFamily: "Inter, sans-serif"}}>Internadda Courses</h1>
           </div>
           
-          <p className="text-xl mt-8">This certificate is proudly presented to</p>
+          <p className="text-2xl mt-6">This certificate is proudly presented to</p>
 
-          <h2 className="text-6xl font-bold text-primary my-8 tracking-wider">
+          <h2 className="text-6xl font-bold text-primary my-6 tracking-wider">
             {studentName}
           </h2>
 
-          <p className="text-xl">for the successful completion of the course</p>
+          <p className="text-2xl">for the successful completion of the course</p>
 
-          <h3 className="text-4xl font-semibold my-6">
+          <h3 className="text-4xl font-semibold my-4">
             &ldquo;{course.title}&rdquo;
           </h3>
 
-          <div className="flex justify-around items-center w-full max-w-2xl mx-auto mt-16 text-sm">
-            <div className="text-center">
+          <div className="flex justify-around items-end w-full max-w-3xl mx-auto mt-12 text-sm">
+            <div className="text-center w-48">
               <p className="font-bold text-lg">{course.instructor}</p>
               <hr className="border-t-2 border-gray-700 my-2" />
               <p className="text-xs">Lead Instructor</p>
             </div>
-            <div className="text-center">
-              <p className="font-bold text-lg">{completionDate}</p>
+
+            {/* Seal */}
+            <div className="relative flex items-center justify-center h-28 w-28 text-white">
+                <div className="absolute inset-0 bg-yellow-500 rounded-full"></div>
+                <div className="absolute inset-1 border-2 border-dashed border-white rounded-full"></div>
+                <div className="relative z-10 flex flex-col items-center">
+                    <Award className="h-10 w-10" />
+                    <p className="text-xs font-bold mt-1">INTERNADDA</p>
+                </div>
+            </div>
+
+            <div className="text-center w-48">
+              <p className="font-['Dancing_Script',_cursive] text-4xl -mb-2">Sumit Pandey</p>
               <hr className="border-t-2 border-gray-700 my-2" />
-              <p className="text-xs">Date of Completion</p>
+              <p className="text-xs">CEO, Internadda</p>
             </div>
           </div>
-        </div>
-        
-        {/* Seal */}
-        <div className="absolute bottom-10 right-10 flex items-center justify-center h-24 w-24 rounded-full bg-yellow-500 text-white">
-            <div className="flex items-center justify-center h-20 w-20 rounded-full border-2 border-dashed border-white">
-                <Award className="h-10 w-10" />
-            </div>
         </div>
       </div>
     );
