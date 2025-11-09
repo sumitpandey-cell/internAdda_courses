@@ -40,7 +40,6 @@ import type { UserProfile } from '@/lib/data-types';
 
 
 const navItems = [
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/', icon: BookOpen, label: 'Courses' },
 ];
 
@@ -193,6 +192,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <DropdownMenuContent className="w-56 mb-2" side="top" align="start">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
+               <DropdownMenuItem onClick={() => router.push('/dashboard')}>
+                <LayoutDashboard className="mr-2 h-4 w-4" />
+                <span>My Dashboard</span>
+              </DropdownMenuItem>
+              {isInstructor && (
+                <DropdownMenuItem onClick={() => router.push('/instructor')}>
+                  <GraduationCap className="mr-2 h-4 w-4" />
+                  <span>Instructor</span>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem disabled>
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
