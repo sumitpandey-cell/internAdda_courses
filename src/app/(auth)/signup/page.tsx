@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpen, Loader2 } from 'lucide-react';
 import type { UserProfile } from '@/lib/data-types';
-import { setDocumentNonBlocking } from '@/firebase';
+import { setDocumentNonBlocking, useFirebase } from '@/firebase';
 
 const signupSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -31,6 +31,13 @@ export default function SignupPage() {
   const { toast } = useToast();
   const auth = getAuth();
   const firestore = getFirestore();
+  const { user, isUserLoading } = useFirebase();
+
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, isUserLoading, router]);
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
@@ -68,6 +75,17 @@ export default function SignupPage() {
       setIsLoading(false);
     }
   };
+
+  if (isUserLoading || user) {
+    return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <div className="flex flex-col items-center gap-4">
+                <BookOpen className="h-12 w-12 text-primary animate-pulse" />
+                <p className="text-muted-foreground">Loading...</p>
+            </div>
+        </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
