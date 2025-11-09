@@ -10,10 +10,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Send } from 'lucide-react';
-import { Header } from '@/components/layout/Header';
+import { Loader2, Send, ArrowLeft, ArrowRight } from 'lucide-react';
 import type { Course, Question, TestAttempt } from '@/lib/data-types';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Progress } from '@/components/ui/progress';
 
 export default function TestPage() {
   const params = useParams<{ courseId: string }>();
@@ -21,6 +22,7 @@ export default function TestPage() {
   const { courseId } = params;
   const { firestore, user, isUserLoading } = useFirebase();
 
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [showResult, setShowResult] = useState(false);
@@ -85,69 +87,116 @@ export default function TestPage() {
           router.push(`/courses/${courseId}`);
       }
   }
+
+  const handleNext = () => {
+    if (questions && currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+    }
+  };
   
   if (isUserLoading || questionsLoading) {
-      return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>
+      return <div className="flex h-screen items-center justify-center bg-background"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
   }
 
+  const currentQuestion = questions?.[currentQuestionIndex];
+  const progressPercentage = questions ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0;
+  const isLastQuestion = questions ? currentQuestionIndex === questions.length - 1 : false;
+
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header />
-      <main className="flex-1 container mx-auto px-4 md:px-6 py-8">
-        <Card className="max-w-3xl mx-auto">
-          <CardHeader>
-            <CardTitle className="text-2xl font-headline">Final Test: {course?.title}</CardTitle>
+    <div className="flex flex-col min-h-screen bg-background">
+      <main className="flex-1 flex items-center justify-center p-4">
+        <Card className="w-full max-w-2xl mx-auto overflow-hidden">
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl font-headline">Final Test: {course?.title}</CardTitle>
             <CardDescription>
-                Complete the test to earn your certificate. You need a score of {course?.passingScore || 70}% or higher to pass.
+                Score {course?.passingScore || 70}% or higher to pass. Good luck!
             </CardDescription>
+            <div className="pt-4">
+                <Progress value={progressPercentage} className="h-2" />
+                <p className="text-sm text-muted-foreground mt-2">{`Question ${currentQuestionIndex + 1} of ${questions?.length}`}</p>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-8">
-            {questions?.map((q, index) => (
-              <div key={q.id}>
-                <p className="font-semibold mb-4">{index + 1}. {q.text}</p>
-                {q.type === 'mcq' && q.options && (
-                  <RadioGroup onValueChange={(value) => handleAnswerChange(q.id, value)}>
-                    <div className="space-y-2">
-                        {q.options.map((option, i) => (
-                            <div key={i} className="flex items-center space-x-2">
-                                <RadioGroupItem value={option} id={`${q.id}-${i}`} />
-                                <Label htmlFor={`${q.id}-${i}`}>{option}</Label>
-                            </div>
-                        ))}
-                    </div>
-                  </RadioGroup>
-                )}
-                {q.type === 'text' && (
-                    <Textarea 
-                        placeholder="Your answer..."
-                        onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-                    />
-                )}
-              </div>
-            ))}
-            <Button onClick={handleSubmit} disabled={isLoading || Object.keys(answers).length !== questions?.length} className="w-full" size="lg">
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-              Submit Test
-            </Button>
+          <CardContent className="min-h-[300px] flex flex-col justify-center">
+            <AnimatePresence mode="wait">
+              {currentQuestion && (
+                <motion.div
+                  key={currentQuestion.id}
+                  initial={{ opacity: 0, x: 50 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -50 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <p className="font-semibold text-xl mb-6 text-center">{currentQuestion.text}</p>
+                  {currentQuestion.type === 'mcq' && currentQuestion.options && (
+                    <RadioGroup 
+                      value={answers[currentQuestion.id] || ''}
+                      onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
+                      className="max-w-md mx-auto"
+                    >
+                      <div className="space-y-4">
+                          {currentQuestion.options.map((option, i) => (
+                              <div key={i} className="flex items-center space-x-3 p-4 border rounded-lg has-[:checked]:bg-primary/10 has-[:checked]:border-primary transition-all">
+                                  <RadioGroupItem value={option} id={`${currentQuestion.id}-${i}`} />
+                                  <Label htmlFor={`${currentQuestion.id}-${i}`} className="text-base cursor-pointer flex-1">{option}</Label>
+                              </div>
+                          ))}
+                      </div>
+                    </RadioGroup>
+                  )}
+                  {currentQuestion.type === 'text' && (
+                      <Textarea 
+                          value={answers[currentQuestion.id] || ''}
+                          placeholder="Your answer..."
+                          onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
+                          className="text-base"
+                      />
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </CardContent>
+          <div className="flex items-center justify-between p-6 bg-muted/50 border-t">
+              <Button variant="outline" onClick={handlePrev} disabled={currentQuestionIndex === 0}>
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Previous
+              </Button>
+              {isLastQuestion ? (
+                 <Button onClick={handleSubmit} disabled={isLoading} size="lg">
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                    Submit Test
+                </Button>
+              ) : (
+                <Button onClick={handleNext}>
+                    Next <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              )}
+          </div>
         </Card>
       </main>
 
       <AlertDialog open={showResult} onOpenChange={setShowResult}>
           <AlertDialogContent>
               <AlertDialogHeader>
-                  <AlertDialogTitle>Test Results</AlertDialogTitle>
-                  <AlertDialogDescription>
-                      {testResult?.passed ? 'Congratulations! You passed the test.' : 'Unfortunately, you did not pass this time.'}
+                  <AlertDialogTitle className="text-2xl text-center">
+                    {testResult?.passed ? '🎉 Congratulations! 🎉' : 'Keep Going!'}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="text-center">
+                      {testResult?.passed ? 'You passed the test with flying colors.' : 'You didn\'t pass this time, but don\'t give up.'}
                   </AlertDialogDescription>
               </AlertDialogHeader>
               <div className="text-center py-4">
-                  <p className="text-muted-foreground">Your Score</p>
-                  <p className={`text-6xl font-bold ${testResult?.passed ? 'text-green-500' : 'text-destructive'}`}>{testResult?.score}%</p>
+                  <p className="text-base text-muted-foreground">Your Score</p>
+                  <p className={`text-7xl font-bold ${testResult?.passed ? 'text-green-500' : 'text-destructive'}`}>{testResult?.score}%</p>
+                  <p className="text-sm text-muted-foreground mt-2">Passing Score: {course?.passingScore || 70}%</p>
               </div>
               <AlertDialogFooter>
-                  <AlertDialogAction onClick={handleResultDialogClose}>
-                      {testResult?.passed ? 'Get Certificate' : 'Back to Course'}
+                  <AlertDialogAction onClick={handleResultDialogClose} className="w-full">
+                      {testResult?.passed ? 'Claim Your Certificate' : 'Back to Course'}
                   </AlertDialogAction>
               </AlertDialogFooter>
           </AlertDialogContent>
