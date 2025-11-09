@@ -30,6 +30,8 @@ import {
 } from '@/components/ui/form';
 import { Loader2, PlusCircle, Trash2, ShieldAlert } from 'lucide-react';
 import type { UserProfile } from '@/lib/data-types';
+import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 
 const lessonSchema = z.object({
   title: z.string().min(1, 'Title is required.'),
@@ -136,251 +138,262 @@ export default function NewCoursePage() {
     }
   };
 
-  if (isProfileLoading) {
+  const Content = () => {
+    if (isProfileLoading) {
      return (
         <div className="flex justify-center items-center h-96">
             <Loader2 className="h-8 w-8 animate-spin" />
         </div>
      )
-  }
-  
-  if (userProfile?.role === 'Student') {
-      return (
-          <div className="max-w-4xl mx-auto">
-              <Card className="mt-10 border-destructive">
-                  <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-destructive">
-                          <ShieldAlert />
-                          Access Denied
-                      </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                      <p>You do not have permission to create courses. This area is for instructors only.</p>
-                      <Button onClick={() => router.push('/')} className="mt-4">
-                          Back to Courses
-                      </Button>
-                  </CardContent>
-              </Card>
-          </div>
-      )
-  }
+    }
+    
+    if (userProfile?.role === 'Student') {
+        return (
+            <div className="max-w-4xl mx-auto">
+                <Card className="mt-10 border-destructive">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-destructive">
+                            <ShieldAlert />
+                            Access Denied
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p>You do not have permission to create courses. This area is for instructors only.</p>
+                        <Button onClick={() => router.push('/')} className="mt-4">
+                            Back to Courses
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
 
-
-  return (
-    <div className="max-w-4xl mx-auto">
-      <Card>
-        <CardHeader>
-          <CardTitle>Create New Course</CardTitle>
-          <CardDescription>Fill out the details below to create a new course. You must add at least one lesson.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              {/* Course Details */}
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Course Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Introduction to React" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Course Description</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Describe what students will learn in this course." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+    return (
+      <div className="max-w-4xl mx-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle>Create New Course</CardTitle>
+            <CardDescription>Fill out the details below to create a new course. You must add at least one lesson.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                {/* Course Details */}
                 <FormField
                   control={form.control}
-                  name="category"
+                  name="title"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Category</FormLabel>
+                      <FormLabel>Course Title</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Web Development" {...field} />
+                        <Input placeholder="e.g., Introduction to React" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
                 <FormField
                   control={form.control}
-                  name="difficulty"
+                  name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Difficulty</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a difficulty" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Beginner">Beginner</SelectItem>
-                          <SelectItem value="Intermediate">Intermediate</SelectItem>
-                          <SelectItem value="Advanced">Advanced</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormLabel>Course Description</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Describe what students will learn in this course." {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
 
-               <FormField
-                control={form.control}
-                name="tags"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tags</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., react, javascript, frontend" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Comma-separated list of tags.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Web Development" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="difficulty"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Difficulty</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a difficulty" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Beginner">Beginner</SelectItem>
+                            <SelectItem value="Intermediate">Intermediate</SelectItem>
+                            <SelectItem value="Advanced">Advanced</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-              <FormField
-                control={form.control}
-                name="thumbnail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Thumbnail URL</FormLabel>
-                    <FormControl>
-                      <Input placeholder="https://example.com/image.png" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                 <FormField
+                  control={form.control}
+                  name="tags"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tags</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., react, javascript, frontend" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Comma-separated list of tags.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              {/* Lessons Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Lessons</h3>
-                {fields.map((field, index) => (
-                  <Card key={field.id} className="p-4 bg-muted/50 relative">
-                    <div className="space-y-4">
-                       <FormField
-                        control={form.control}
-                        name={`lessons.${index}.title`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Lesson {index + 1} Title</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                            control={form.control}
-                            name={`lessons.${index}.type`}
-                            render={({ field }) => (
+                <FormField
+                  control={form.control}
+                  name="thumbnail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Thumbnail URL</FormLabel>
+                      <FormControl>
+                        <Input placeholder="https://example.com/image.png" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Lessons Section */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Lessons</h3>
+                  {fields.map((field, index) => (
+                    <Card key={field.id} className="p-4 bg-muted/50 relative">
+                      <div className="space-y-4">
+                         <FormField
+                          control={form.control}
+                          name={`lessons.${index}.title`}
+                          render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Type</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select type"/></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="video">Video</SelectItem>
-                                        <SelectItem value="text">Text</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
+                              <FormLabel>Lesson {index + 1} Title</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
                             </FormItem>
-                            )}
+                          )}
                         />
-                        <FormField
-                            control={form.control}
-                            name={`lessons.${index}.duration`}
-                            render={({ field }) => (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField
+                              control={form.control}
+                              name={`lessons.${index}.type`}
+                              render={({ field }) => (
+                              <FormItem>
+                                  <FormLabel>Type</FormLabel>
+                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                      <FormControl><SelectTrigger><SelectValue placeholder="Select type"/></SelectTrigger></FormControl>
+                                      <SelectContent>
+                                          <SelectItem value="video">Video</SelectItem>
+                                          <SelectItem value="text">Text</SelectItem>
+                                      </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                              </FormItem>
+                              )}
+                          />
+                          <FormField
+                              control={form.control}
+                              name={`lessons.${index}.duration`}
+                              render={({ field }) => (
+                              <FormItem>
+                                  <FormLabel>Duration (min)</FormLabel>
+                                  <FormControl><Input type="number" {...field} /></FormControl>
+                                  <FormMessage />
+                              </FormItem>
+                              )}
+                          />
+                        </div>
+                         <FormField
+                          control={form.control}
+                          name={`lessons.${index}.content`}
+                          render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Duration (min)</FormLabel>
-                                <FormControl><Input type="number" {...field} /></FormControl>
-                                <FormMessage />
+                              <FormLabel>Content</FormLabel>
+                              <FormControl>
+                                <Textarea placeholder="YouTube Video ID or Markdown content" {...field} />
+                              </FormControl>
+                              <FormDescription>
+                                  {form.watch(`lessons.${index}.type`) === 'video' ? 'Enter the YouTube Video ID.' : 'Enter text content using Markdown.'}
+                              </FormDescription>
+                              <FormMessage />
                             </FormItem>
-                            )}
+                          )}
                         />
+                         <FormField
+                          control={form.control}
+                          name={`lessons.${index}.transcript`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Transcript</FormLabel>
+                              <FormControl>
+                                <Textarea placeholder="Enter the lesson transcript here..." {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => remove(index)}
+                          className="absolute top-2 right-2"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                       <FormField
-                        control={form.control}
-                        name={`lessons.${index}.content`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Content</FormLabel>
-                            <FormControl>
-                              <Textarea placeholder="YouTube Video ID or Markdown content" {...field} />
-                            </FormControl>
-                            <FormDescription>
-                                {form.watch(`lessons.${index}.type`) === 'video' ? 'Enter the YouTube Video ID.' : 'Enter text content using Markdown.'}
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                       <FormField
-                        control={form.control}
-                        name={`lessons.${index}.transcript`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Transcript</FormLabel>
-                            <FormControl>
-                              <Textarea placeholder="Enter the lesson transcript here..." {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => remove(index)}
-                        className="absolute top-2 right-2"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
-                 <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => append({ title: '', type: 'video', content: '', duration: 10, transcript: '' })}
-                >
-                  <PlusCircle className="mr-2 h-4 w-4" /> Add Lesson
-                </Button>
-              </div>
+                    </Card>
+                  ))}
+                   <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => append({ title: '', type: 'video', content: '', duration: 10, transcript: '' })}
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Lesson
+                  </Button>
+                </div>
 
-              <Button type="submit" disabled={isLoading} size="lg">
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Create Course
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+                <Button type="submit" disabled={isLoading} size="lg">
+                  {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Create Course
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      <main className="flex-1 container mx-auto px-4 md:px-6 py-8">
+        <Content />
+      </main>
+      <Footer />
     </div>
   );
 }

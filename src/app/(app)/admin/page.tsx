@@ -7,6 +7,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import { Users, BookOpen, DollarSign } from 'lucide-react';
+import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 
 export default function AdminPage() {
   const { firestore } = useFirebase();
@@ -28,41 +30,47 @@ export default function AdminPage() {
   const totalCourses = courses?.length || 0;
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold font-headline">Admin Dashboard</h1>
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      <main className="flex-1 container mx-auto px-4 md:px-6 py-8">
+        <div className="space-y-6">
+          <h1 className="text-3xl font-bold font-headline">Admin Dashboard</h1>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <StatsCard
-          title="Total Users"
-          value={usersLoading ? '...' : totalUsers}
-          icon={Users}
-        />
-        <StatsCard
-          title="Total Courses"
-          value={coursesLoading ? '...' : totalCourses}
-          icon={BookOpen}
-        />
-        <StatsCard title="Total Revenue" value="$0" icon={DollarSign} />
-      </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <StatsCard
+              title="Total Users"
+              value={usersLoading ? '...' : totalUsers}
+              icon={Users}
+            />
+            <StatsCard
+              title="Total Courses"
+              value={coursesLoading ? '...' : totalCourses}
+              icon={BookOpen}
+            />
+            <StatsCard title="Total Revenue" value="$0" icon={DollarSign} />
+          </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>User Management</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <UserTable users={users || []} />
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Course Analytics</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <AnalyticsChart />
-          </CardContent>
-        </Card>
-      </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle>User Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <UserTable users={users || []} />
+              </CardContent>
+            </Card>
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle>Course Analytics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AnalyticsChart />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </main>
+      <Footer />
     </div>
   );
 }

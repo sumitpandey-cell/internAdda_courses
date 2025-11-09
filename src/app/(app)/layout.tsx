@@ -127,41 +127,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
-          {isInstructor && (
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <hr className="my-2 border-border" />
-              </SidebarMenuItem>
-              {instructorNavItems.map((item) => (
-                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.href)}
-                    tooltip={{ children: item.label }}
-                  >
-                    <Link href={item.href}>
-                      <item.icon />
-                      <span>{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-              {userProfile?.role === 'Admin' && adminNavItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.href)}
-                    tooltip={{ children: item.label }}
-                  >
-                    <Link href={item.href}>
-                      <item.icon />
-                      <span>{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          )}
+          
         </SidebarContent>
         <SidebarFooter>
           <DropdownMenu>
@@ -200,6 +166,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <DropdownMenuItem onClick={() => router.push('/instructor')}>
                   <GraduationCap className="mr-2 h-4 w-4" />
                   <span>Instructor</span>
+                </DropdownMenuItem>
+              )}
+              {userProfile?.role === 'Admin' && (
+                <DropdownMenuItem onClick={() => router.push('/admin')}>
+                    <Shield className="mr-2 h-4 w-4" />
+                    <span>Admin</span>
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem disabled>
