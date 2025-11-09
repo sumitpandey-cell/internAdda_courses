@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -228,9 +229,11 @@ export default function EditCoursePage() {
             ? doc(firestore, `courses/${courseId}/questions`, question.id)
             : doc(collection(firestore, `courses/${courseId}/questions`));
 
+        const questionOptions = (question.type === 'mcq' && question.options) ? question.options.split(',').map(o => o.trim()) : [];
+
         await setDoc(questionRef, {
             id: questionRef.id, courseId: courseId, text: question.text, type: question.type,
-            options: question.type === 'mcq' ? question.options?.split(',').map(o => o.trim()) : [],
+            options: questionOptions,
             correctAnswer: question.correctAnswer, order: i + 1,
         }, { merge: true });
       }

@@ -1,7 +1,9 @@
+
 'use client';
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { useCallback } from 'react';
 import {
   BookOpen,
   LayoutDashboard,
@@ -57,10 +59,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   );
   const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
-  const handleLogout = () => {
-    getAuth().signOut();
-    router.push('/');
-  };
+  const handleLogout = useCallback(() => {
+    getAuth().signOut().then(() => {
+      router.push('/');
+    });
+  }, [router]);
 
   const pathSegments = pathname.split('/').filter(Boolean);
   const isLessonPage = pathSegments[0] === 'courses' && pathSegments.length > 2 && pathSegments[2] === 'lesson';

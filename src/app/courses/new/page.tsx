@@ -157,10 +157,11 @@ export default function NewCoursePage() {
         const question = data.questions[i];
         const questionCollectionRef = collection(firestore, `courses/${courseId}/questions`);
         const questionRef = doc(questionCollectionRef);
+        const questionOptions = (question.type === 'mcq' && question.options) ? question.options.split(',').map(o => o.trim()) : [];
         
         await setDoc(questionRef, {
           id: questionRef.id, courseId: courseId, text: question.text, type: question.type,
-          options: question.type === 'mcq' ? question.options?.split(',').map(o => o.trim()) : [],
+          options: questionOptions,
           correctAnswer: question.correctAnswer, order: i + 1,
         });
       }
