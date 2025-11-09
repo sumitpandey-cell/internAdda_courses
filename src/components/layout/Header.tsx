@@ -11,25 +11,28 @@ export function Header() {
       </Link>
       <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
         <Link
-          href="#features"
-          className="text-sm font-medium hover:underline underline-offset-4"
-        >
-          Features
-        </Link>
-        <Link
-          href="#courses"
+          href="/courses"
           className="text-sm font-medium hover:underline underline-offset-4"
         >
           Courses
         </Link>
         <Link
-          href="#testimonials"
+          href="/#features"
+          className="text-sm font-medium hover:underline underline-offset-4"
+        >
+          Features
+        </Link>
+        <Link
+          href="/#testimonials"
           className="text-sm font-medium hover:underline underline-offset-4"
         >
           Testimonials
         </Link>
         <Button asChild>
-          <Link href="/dashboard">Login</Link>
+          <Link href="/login">Login</Link>
+        </Button>
+         <Button asChild variant="secondary">
+          <Link href="/dashboard">My Dashboard</Link>
         </Button>
       </nav>
     </header>

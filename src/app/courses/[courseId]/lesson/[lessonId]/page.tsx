@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { notFound, useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   useFirebase,
@@ -46,6 +46,12 @@ export default function LessonPage() {
 
   const { firestore, user } = useFirebase();
 
+  // Redirect if not logged in
+  if (!user) {
+    router.push(`/login?redirect=/courses/${courseId}/lesson/${lessonId}`);
+    return null;
+  }
+
   // Memoize Firestore references
   const courseRef = useMemoFirebase(
     () => (firestore && courseId ? doc(firestore, 'courses', courseId) : null),
@@ -85,9 +91,6 @@ export default function LessonPage() {
 
   const lessonIndex = lessons?.findIndex((l) => l.id === lessonId) ?? -1;
 
-  // if (!courseLoading && !course) notFound();
-  // if (!lessonLoading && !lesson) notFound();
-
   const prevLesson = lessonIndex > 0 ? lessons?.[lessonIndex - 1] : null;
   const nextLesson = lessons && lessonIndex < lessons.length - 1 ? lessons[lessonIndex + 1] : null;
   
@@ -121,15 +124,13 @@ export default function LessonPage() {
     setDocumentNonBlocking(progressRef, newProgress, { merge: true });
     
     if (nextLesson) {
-      router.push(`/courses/${courseId}/${nextLesson.id}`);
+      router.push(`/courses/${courseId}/lesson/${nextLesson.id}`);
     }
   };
 
   const handleSaveNote = () => {
     if (!firestore || !user || !lessonId || !noteContent) return;
     
-    // For this simplified example, we'll just create a new note every time.
-    // A more advanced implementation would update an existing note.
     const noteRef = doc(collection(firestore, `users/${user.uid}/notes`));
     setDocumentNonBlocking(noteRef, {
       userId: user.uid,
@@ -199,21 +200,24 @@ export default function LessonPage() {
                   return (
                     <AccordionItem key={l.id} value={`item-${index}`}>
                       <AccordionTrigger
-                        className={l.id === lessonId ? 'text-primary' : ''}
+                        className={cn('w-full', l.id === lessonId ? 'text-primary' : '')}
+                        asChild
                       >
-                        <Link
-                          href={`/courses/${courseId}/${l.id}`}
-                          className="flex items-center gap-3 w-full"
-                        >
-                          {isLessonCompleted ? (
-                            <CheckCircle className="h-5 w-5 text-green-500" />
-                          ) : (
-                            <PlayCircle className="h-5 w-5 text-muted-foreground" />
-                          )}
-                          <span className="font-medium text-sm text-left">
-                            {l.title}
-                          </span>
-                        </Link>
+                         <div className="flex items-center justify-between w-full">
+                            <Link
+                                href={`/courses/${courseId}/lesson/${l.id}`}
+                                className="flex items-center gap-3 flex-1"
+                                >
+                                {isLessonCompleted ? (
+                                    <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                                ) : (
+                                    <PlayCircle className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                                )}
+                                <span className="font-medium text-sm text-left">
+                                    {l.title}
+                                </span>
+                            </Link>
+                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="text-sm text-muted-foreground pl-10">
                         {l.type === 'video' ? `Video` : `Text`}
@@ -345,7 +349,7 @@ export default function LessonPage() {
             <div className="w-full max-w-4xl flex justify-between items-center mb-4">
               {prevLesson ? (
                 <Button variant="outline" asChild>
-                  <Link href={`/courses/${courseId}/${prevLesson.id}`}>
+                  <Link href={`/courses/${courseId}/lesson/${prevLesson.id}`}>
                     <ChevronLeft className="mr-2 h-4 w-4" /> Previous
                   </Link>
                 </Button>

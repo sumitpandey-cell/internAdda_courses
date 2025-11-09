@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { getAuth, signInWithEmailAndPassword, signInAnonymously } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -24,6 +24,8 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get('redirect') || '/dashboard';
   const { toast } = useToast();
   const auth = getAuth();
 
@@ -36,7 +38,7 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
-      router.push('/dashboard');
+      router.push(redirectUrl);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -52,7 +54,7 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await signInAnonymously(auth);
-      router.push('/dashboard');
+      router.push(redirectUrl);
     } catch (error: any) {
        toast({
         variant: 'destructive',

@@ -5,7 +5,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   BookOpen,
   LayoutDashboard,
-  Bot,
   Shield,
   User,
   Settings,
@@ -65,13 +64,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   const pathSegments = pathname.split('/').filter(Boolean);
-  const isLessonPage = pathSegments[0] === 'courses' && pathSegments.length > 1;
+  const isLessonPage = pathSegments[0] === 'courses' && pathSegments.length > 2 && pathSegments[2] === 'lesson';
   
   const isActive = (path: string) => {
-    if (path === '/courses' && (pathname.startsWith('/courses/') || pathname === '/courses')) return true;
+    // Special handling for courses to be active on sub-paths
+    if (path === '/courses' && pathname.startsWith('/courses')) return true;
     if (path !== '/courses' && path !== '/dashboard') return pathname.startsWith(path);
     return pathname === path;
   };
+  
 
   const pageTitle =
     [...navItems, ...adminNavItems, ...instructorNavItems].find((item) => isActive(item.href))
