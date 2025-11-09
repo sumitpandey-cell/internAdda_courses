@@ -4,49 +4,54 @@ import type { Course } from '@/lib/data-types';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
+import { Star, Clock, BookOpen } from 'lucide-react';
 
 type CourseCardProps = {
-  course: Course;
+  course: Course & { rating: number; lessonsCount: number, duration: number, domain: string, heroImage: string };
 };
 
 export function CourseCard({ course }: CourseCardProps) {
   return (
-    <Card className="flex flex-col h-full overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1">
-      <CardHeader className="p-0">
+    <Card className="flex flex-col h-full overflow-hidden transition-all hover:shadow-xl hover:-translate-y-1 border-2 border-transparent hover:border-primary">
+      <CardHeader className="p-0 relative">
         <Link href={`/courses/${course.id}`}>
-          <Image
-            src={course.thumbnail}
-            alt={course.title}
-            width={600}
-            height={400}
-            className="aspect-video w-full object-cover"
-            data-ai-hint="course thumbnail"
-          />
+            <div className="relative aspect-[16/9] w-full bg-slate-800 rounded-t-lg overflow-hidden">
+                <Image
+                    src={course.heroImage}
+                    alt={course.title}
+                    fill
+                    className="object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent p-4 flex flex-col justify-end">
+                    <h3 className="text-white text-lg font-bold">{course.title}</h3>
+                </div>
+            </div>
         </Link>
       </CardHeader>
-      <CardContent className="flex-1 p-4">
-        <Badge variant="outline" className="mb-2">{course.difficulty}</Badge>
-        <CardTitle className="text-lg font-headline mb-1">
-          <Link href={`/courses/${course.id}`}>{course.title}</Link>
-        </CardTitle>
-        <CardDescription className="text-sm line-clamp-2">{course.description}</CardDescription>
+      <CardContent className="flex-1 p-4 flex flex-col">
+        <p className="text-sm font-semibold mb-2">{course.title}</p>
+        <p className="text-xs text-muted-foreground mb-4">{course.domain}</p>
+        <div className="flex items-center gap-1 text-yellow-500 mb-4">
+            <Star className="w-4 h-4 fill-current" />
+            <span className="text-sm font-bold text-foreground">{course.rating}</span>
+        </div>
+        <div className="flex-grow"></div>
+        <div className="flex justify-between items-center text-sm text-muted-foreground border-t pt-4 mt-4">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            <span>{course.duration} mins</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <BookOpen className="w-4 h-4" />
+            <span>{course.lessonsCount} Lessons</span>
+          </div>
+          <Badge className="bg-green-100 text-green-800 hover:bg-green-200">FREE</Badge>
+        </div>
       </CardContent>
-      <CardFooter className="p-4 pt-0">
-        <Button asChild variant="outline" size="sm" className="w-full">
-          <Link href={`/courses/${course.id}`}>
-            View Course
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
-      </CardFooter>
     </Card>
   );
 }

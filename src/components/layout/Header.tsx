@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BookOpen, LayoutDashboard, LogOut, User, GraduationCap } from 'lucide-react';
+import { BookOpen, LayoutDashboard, LogOut, User, GraduationCap, Shield } from 'lucide-react';
 import { getAuth } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 
@@ -37,6 +37,7 @@ export function Header() {
   };
 
   const isInstructor = userProfile?.role === 'Instructor' || userProfile?.role === 'Admin';
+  const isAdmin = userProfile?.role === 'Admin';
 
 
   const renderAuthButton = () => {
@@ -73,6 +74,12 @@ export function Header() {
                   <span>Instructor</span>
                 </DropdownMenuItem>
               )}
+            {isAdmin && (
+              <DropdownMenuItem onClick={() => router.push('/admin')}>
+                  <Shield className="mr-2 h-4 w-4" />
+                  <span>Admin</span>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
@@ -91,10 +98,9 @@ export function Header() {
   };
 
   return (
-    <header className="px-4 lg:px-6 h-16 flex items-center bg-background/80 backdrop-blur-sm sticky top-0 z-50 border-b">
+    <header className="px-4 lg:px-6 h-16 flex items-center bg-transparent backdrop-blur-sm sticky top-0 z-50 border-b">
       <Link href="/" className="flex items-center justify-center">
-        <BookOpen className="h-6 w-6 text-primary" />
-        <span className="ml-2 text-xl font-bold font-headline">InternAdda Courses</span>
+        <span className="text-xl font-bold font-headline">Internadda</span>
       </Link>
       <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
         {renderAuthButton()}

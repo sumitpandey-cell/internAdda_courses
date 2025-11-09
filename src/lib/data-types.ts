@@ -18,6 +18,7 @@ export type Course = {
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
   tags: string[];
   thumbnail: string;
+  heroImage?: string;
 };
 
 export type UserProgress = {
