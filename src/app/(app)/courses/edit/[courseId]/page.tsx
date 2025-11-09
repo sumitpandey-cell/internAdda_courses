@@ -200,7 +200,7 @@ export default function EditCoursePage() {
                   </CardHeader>
                   <CardContent>
                       <p>You do not have permission to edit this course.</p>
-                      <Button onClick={() => router.push('/courses')} className="mt-4">
+                      <Button onClick={() => router.push('/')} className="mt-4">
                           Back to Courses
                       </Button>
                   </CardContent>

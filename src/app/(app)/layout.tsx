@@ -41,7 +41,7 @@ import type { UserProfile } from '@/lib/data-types';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/courses', icon: BookOpen, label: 'Courses' },
+  { href: '/', icon: BookOpen, label: 'Courses' },
 ];
 
 const instructorNavItems = [{ href: '/instructor', icon: GraduationCap, label: 'Instructor' }];
@@ -68,8 +68,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   
   const isActive = (path: string) => {
     // Special handling for courses to be active on sub-paths
-    if (path === '/courses' && pathname.startsWith('/courses')) return true;
-    if (path !== '/courses' && path !== '/dashboard') return pathname.startsWith(path);
+    if (path === '/' && pathname.startsWith('/courses')) return true;
+    if (path !== '/' && path !== '/dashboard') return pathname.startsWith(path);
     return pathname === path;
   };
   

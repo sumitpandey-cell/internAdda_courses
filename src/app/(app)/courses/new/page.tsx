@@ -83,7 +83,7 @@ export default function NewCoursePage() {
   useEffect(() => {
     // Redirect if user is loaded and is not an instructor/admin
     if (!isProfileLoading && userProfile && userProfile.role === 'Student') {
-      router.replace('/courses');
+      router.replace('/');
     }
   }, [userProfile, isProfileLoading, router]);
 
@@ -156,7 +156,7 @@ export default function NewCoursePage() {
                   </CardHeader>
                   <CardContent>
                       <p>You do not have permission to create courses. This area is for instructors only.</p>
-                      <Button onClick={() => router.push('/courses')} className="mt-4">
+                      <Button onClick={() => router.push('/')} className="mt-4">
                           Back to Courses
                       </Button>
                   </CardContent>

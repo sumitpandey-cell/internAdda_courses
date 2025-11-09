@@ -50,7 +50,7 @@ export default function CoursePage() {
         <div className="max-w-6xl mx-auto py-8 px-4 md:px-6">
           <div className="mb-6">
             <Button variant="outline" asChild>
-              <Link href="/courses">
+              <Link href="/">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to All Courses
               </Link>

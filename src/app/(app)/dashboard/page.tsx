@@ -70,7 +70,7 @@ export default function DashboardPage() {
           <Card>
             <CardContent className="p-6 text-center">
               <p className="text-muted-foreground">You have no courses in progress.</p>
-              <Link href="/courses" className="text-primary hover:underline mt-2 inline-block">Explore Courses</Link>
+              <Link href="/" className="text-primary hover:underline mt-2 inline-block">Explore Courses</Link>
             </CardContent>
           </Card>
         )}
