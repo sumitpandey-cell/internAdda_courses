@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BookOpen, LayoutDashboard, LogOut, User } from 'lucide-react';
+import { BookOpen, LayoutDashboard, LogOut, User, GraduationCap } from 'lucide-react';
 import { getAuth } from 'firebase/auth';
+import { doc } from 'firebase/firestore';
 
-import { useFirebase } from '@/firebase';
+import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -17,15 +18,26 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { UserProfile } from '@/lib/data-types';
+
 
 export function Header() {
-  const { user, isUserLoading } = useFirebase();
+  const { user, isUserLoading, firestore } = useFirebase();
   const router = useRouter();
+
+  const userProfileRef = useMemoFirebase(
+    () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
+    [firestore, user]
+  );
+  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
   const handleLogout = () => {
     getAuth().signOut();
     router.push('/');
   };
+
+  const isInstructor = userProfile?.role === 'Instructor' || userProfile?.role === 'Admin';
+
 
   const renderAuthButton = () => {
     if (isUserLoading) {
@@ -38,7 +50,7 @@ export function Header() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} />
+                <AvatarImage src={user.photoURL || userProfile?.avatar} alt={user.displayName || 'User'} />
                 <AvatarFallback>{user.displayName?.charAt(0) || 'U'}</AvatarFallback>
               </Avatar>
             </Button>
@@ -55,6 +67,12 @@ export function Header() {
               <LayoutDashboard className="mr-2 h-4 w-4" />
               <span>My Dashboard</span>
             </DropdownMenuItem>
+             {isInstructor && (
+                <DropdownMenuItem onClick={() => router.push('/instructor')}>
+                  <GraduationCap className="mr-2 h-4 w-4" />
+                  <span>Instructor</span>
+                </DropdownMenuItem>
+              )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
