@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import React, { useState, useEffect } from 'react';
+import { useForm, useFieldArray, UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
@@ -66,114 +66,34 @@ const courseSchema = z.object({
 
 type CourseFormValues = z.infer<typeof courseSchema>;
 
-export default function NewCoursePage() {
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
-  const { firestore, user } = useFirebase();
+interface ContentProps {
+  form: UseFormReturn<CourseFormValues>;
+  onSubmit: (data: CourseFormValues) => void;
+  isLoading: boolean;
+  isProfileLoading: boolean;
+  userProfile: UserProfile | null;
+  lessonFields: any[];
+  appendLesson: (lesson: any) => void;
+  removeLesson: (index: number) => void;
+  questionFields: any[];
+  appendQuestion: (question: any) => void;
+  removeQuestion: (index: number) => void;
+}
 
-  const userProfileRef = useMemoFirebase(
-    () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
-    [firestore, user]
-  );
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
-
-  const form = useForm<CourseFormValues>({
-    resolver: zodResolver(courseSchema),
-    defaultValues: {
-      title: '',
-      description: '',
-      category: '',
-      difficulty: 'Beginner',
-      whatYouWillLearn: '',
-      prerequisites: 'No prior experience required. This course is designed for absolute beginners!',
-      instructorBio: 'A passionate educator dedicated to making technology accessible to everyone.',
-      tags: '',
-      thumbnail: '',
-      passingScore: 70,
-      lessons: [],
-      questions: [],
-    },
-  });
-
-  const { fields: lessonFields, append: appendLesson, remove: removeLesson } = useFieldArray({
-    control: form.control,
-    name: 'lessons',
-  });
-  
-  const { fields: questionFields, append: appendQuestion, remove: removeQuestion } = useFieldArray({
-    control: form.control,
-    name: 'questions',
-  });
-
-  useEffect(() => {
-    // Redirect if user is loaded and is not an instructor/admin
-    if (!isProfileLoading && userProfile && userProfile.role === 'Student') {
-      router.replace('/');
-    }
-  }, [userProfile, isProfileLoading, router]);
-
-  const onSubmit = async (data: CourseFormValues) => {
-    if (!firestore || !user || userProfile?.role === 'Student') return;
-    setIsLoading(true);
-
-    try {
-      const courseCollectionRef = collection(firestore, 'courses');
-      const courseRef = doc(courseCollectionRef);
-      const courseId = courseRef.id;
-
-      const newCourse = {
-        id: courseId,
-        title: data.title,
-        description: data.description,
-        category: data.category,
-        difficulty: data.difficulty,
-        whatYouWillLearn: data.whatYouWillLearn.split(',').map(item => item.trim()),
-        prerequisites: data.prerequisites,
-        instructorBio: data.instructorBio,
-        tags: data.tags ? data.tags.split(',').map(tag => tag.trim()) : [],
-        thumbnail: data.thumbnail,
-        instructorId: user.uid,
-        instructor: user.displayName || 'Anonymous', // Denormalize instructor name
-        passingScore: data.passingScore,
-      };
-      
-      await setDoc(courseRef, newCourse);
-      
-      // Save lessons
-      for (let i = 0; i < data.lessons.length; i++) {
-        const lesson = data.lessons[i];
-        const lessonCollectionRef = collection(firestore, `courses/${courseId}/lessons`);
-        
-        const lessonDocRef = await addDoc(lessonCollectionRef, {
-          courseId: courseId, title: lesson.title, type: lesson.type,
-          content: lesson.content, duration: lesson.duration, order: i + 1, transcript: lesson.transcript,
-        });
-        await setDoc(lessonDocRef, { id: lessonDocRef.id }, { merge: true });
-      }
-      
-      // Save questions
-      for (let i = 0; i < data.questions.length; i++) {
-        const question = data.questions[i];
-        const questionCollectionRef = collection(firestore, `courses/${courseId}/questions`);
-        const questionOptions = (question.type === 'mcq' && question.options) ? question.options.split(',').map(o => o.trim()) : [];
-        
-        const questionDocRef = await addDoc(questionCollectionRef, {
-          courseId: courseId, text: question.text, type: question.type,
-          options: questionOptions,
-          correctAnswer: question.correctAnswer, order: i + 1,
-        });
-        await setDoc(questionDocRef, { id: questionDocRef.id }, { merge: true });
-      }
-
-      router.push(`/courses/${courseId}`);
-    } catch (error) {
-      console.error('Error creating course:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const Content = () => {
+const Content = React.memo(function Content({
+  form,
+  onSubmit,
+  isLoading,
+  isProfileLoading,
+  userProfile,
+  lessonFields,
+  appendLesson,
+  removeLesson,
+  questionFields,
+  appendQuestion,
+  removeQuestion,
+}: ContentProps) {
+    const router = useRouter();
     if (isProfileLoading) {
      return (
         <div className="flex justify-center items-center h-96">
@@ -559,14 +479,135 @@ export default function NewCoursePage() {
         </Card>
       </div>
     );
-  }
+});
+
+
+export default function NewCoursePage() {
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const { firestore, user } = useFirebase();
+
+  const userProfileRef = useMemoFirebase(
+    () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
+    [firestore, user]
+  );
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
+
+  const form = useForm<CourseFormValues>({
+    resolver: zodResolver(courseSchema),
+    defaultValues: {
+      title: '',
+      description: '',
+      category: '',
+      difficulty: 'Beginner',
+      whatYouWillLearn: '',
+      prerequisites: 'No prior experience required. This course is designed for absolute beginners!',
+      instructorBio: 'A passionate educator dedicated to making technology accessible to everyone.',
+      tags: '',
+      thumbnail: '',
+      passingScore: 70,
+      lessons: [],
+      questions: [],
+    },
+  });
+
+  const { fields: lessonFields, append: appendLesson, remove: removeLesson } = useFieldArray({
+    control: form.control,
+    name: 'lessons',
+  });
+  
+  const { fields: questionFields, append: appendQuestion, remove: removeQuestion } = useFieldArray({
+    control: form.control,
+    name: 'questions',
+  });
+
+  useEffect(() => {
+    // Redirect if user is loaded and is not an instructor/admin
+    if (!isProfileLoading && userProfile && userProfile.role === 'Student') {
+      router.replace('/');
+    }
+  }, [userProfile, isProfileLoading, router]);
+
+  const onSubmit = async (data: CourseFormValues) => {
+    if (!firestore || !user || userProfile?.role === 'Student') return;
+    setIsLoading(true);
+
+    try {
+      const courseCollectionRef = collection(firestore, 'courses');
+      const courseRef = doc(courseCollectionRef);
+      const courseId = courseRef.id;
+
+      const newCourse = {
+        id: courseId,
+        title: data.title,
+        description: data.description,
+        category: data.category,
+        difficulty: data.difficulty,
+        whatYouWillLearn: data.whatYouWillLearn.split(',').map(item => item.trim()),
+        prerequisites: data.prerequisites,
+        instructorBio: data.instructorBio,
+        tags: data.tags ? data.tags.split(',').map(tag => tag.trim()) : [],
+        thumbnail: data.thumbnail,
+        instructorId: user.uid,
+        instructor: user.displayName || 'Anonymous', // Denormalize instructor name
+        passingScore: data.passingScore,
+      };
+      
+      await setDoc(courseRef, newCourse);
+      
+      // Save lessons
+      for (let i = 0; i < data.lessons.length; i++) {
+        const lesson = data.lessons[i];
+        const lessonCollectionRef = collection(firestore, `courses/${courseId}/lessons`);
+        
+        const lessonDocRef = await addDoc(lessonCollectionRef, {
+          courseId: courseId, title: lesson.title, type: lesson.type,
+          content: lesson.content, duration: lesson.duration, order: i + 1, transcript: lesson.transcript,
+        });
+        await setDoc(lessonDocRef, { id: lessonDocRef.id }, { merge: true });
+      }
+      
+      // Save questions
+      for (let i = 0; i < data.questions.length; i++) {
+        const question = data.questions[i];
+        const questionCollectionRef = collection(firestore, `courses/${courseId}/questions`);
+        const questionOptions = (question.type === 'mcq' && question.options) ? question.options.split(',').map(o => o.trim()) : [];
+        
+        const questionDocRef = await addDoc(questionCollectionRef, {
+          courseId: courseId, text: question.text, type: question.type,
+          options: questionOptions,
+          correctAnswer: question.correctAnswer, order: i + 1,
+        });
+        await setDoc(questionDocRef, { id: questionDocRef.id }, { merge: true });
+      }
+
+      router.push(`/courses/${courseId}`);
+    } catch (error) {
+      console.error('Error creating course:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-1 container mx-auto px-4 md:px-6 py-8">
-        <Content />
+        <Content 
+            form={form}
+            onSubmit={onSubmit}
+            isLoading={isLoading}
+            isProfileLoading={isProfileLoading}
+            userProfile={userProfile}
+            lessonFields={lessonFields}
+            appendLesson={appendLesson}
+            removeLesson={removeLesson}
+            questionFields={questionFields}
+            appendQuestion={appendQuestion}
+            removeQuestion={removeQuestion}
+        />
       </main>
     </div>
   );
 }
+

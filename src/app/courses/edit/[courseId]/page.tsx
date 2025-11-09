@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter, useParams } from 'next/navigation';
@@ -66,188 +66,39 @@ const courseSchema = z.object({
 
 type CourseFormValues = z.infer<typeof courseSchema>;
 
-export default function EditCoursePage() {
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
-  const params = useParams<{ courseId: string }>();
-  const { courseId } = params;
+interface ContentProps {
+  form: UseFormReturn<CourseFormValues>;
+  onSubmit: (data: CourseFormValues) => void;
+  isLoading: boolean;
+  pageIsLoading: boolean;
+  userProfile: UserProfile | null;
+  course: Course | null;
+  userId: string | undefined;
+  lessonFields: any[];
+  appendLesson: (lesson: any) => void;
+  removeLesson: (index: number) => void;
+  questionFields: any[];
+  appendQuestion: (question: any) => void;
+  removeQuestion: (index: number) => void;
+}
 
-  const { firestore, user } = useFirebase();
+const Content = React.memo(function Content({
+  form,
+  onSubmit,
+  isLoading,
+  pageIsLoading,
+  userProfile,
+  course,
+  userId,
+  lessonFields,
+  appendLesson,
+  removeLesson,
+  questionFields,
+  appendQuestion,
+  removeQuestion,
+}: ContentProps) {
+    const router = useRouter();
 
-  const userProfileRef = useMemoFirebase(
-    () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
-    [firestore, user]
-  );
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
-
-  const courseRef = useMemoFirebase(
-      () => (firestore && courseId ? doc(firestore, 'courses', courseId) : null),
-      [firestore, courseId]
-  )
-  const { data: course, isLoading: isCourseLoading } = useDoc<Course & { passingScore?: number }>(courseRef);
-
-  const lessonsRef = useMemoFirebase(
-    () => (firestore && courseId ? query(collection(firestore, `courses/${courseId}/lessons`), orderBy('order')) : null),
-    [firestore, courseId]
-  )
-  const { data: lessons, isLoading: areLessonsLoading } = useCollection<Lesson>(lessonsRef);
-
-  const questionsRef = useMemoFirebase(
-    () => (firestore && courseId ? query(collection(firestore, `courses/${courseId}/questions`), orderBy('order')) : null),
-    [firestore, courseId]
-  )
-  const { data: questions, isLoading: areQuestionsLoading } = useCollection<Question>(questionsRef);
-
-
-  const form = useForm<CourseFormValues>({
-    resolver: zodResolver(courseSchema),
-    defaultValues: {
-      title: '',
-      description: '',
-      category: '',
-      difficulty: 'Beginner',
-      whatYouWillLearn: '',
-      prerequisites: '',
-      instructorBio: '',
-      tags: '',
-      thumbnail: '',
-      passingScore: 70,
-      lessons: [],
-      questions: [],
-    },
-  });
-  
-  useEffect(() => {
-    if (course && lessons && questions) {
-      form.reset({
-        title: course.title,
-        description: course.description,
-        category: course.category,
-        difficulty: course.difficulty,
-        whatYouWillLearn: course.whatYouWillLearn?.join(', ') || '',
-        prerequisites: course.prerequisites || '',
-        instructorBio: course.instructorBio || '',
-        tags: course.tags?.join(', ') || '',
-        thumbnail: course.thumbnail,
-        passingScore: course.passingScore || 70,
-        lessons: lessons.map(l => ({
-          id: l.id,
-          title: l.title,
-          type: l.type,
-          content: l.content,
-          duration: l.duration || 0,
-          transcript: l.transcript || '',
-        })),
-        questions: questions.map(q => ({
-          id: q.id,
-          text: q.text,
-          type: q.type,
-          options: q.options?.join(','),
-          correctAnswer: q.correctAnswer,
-        }))
-      });
-    }
-  }, [course, lessons, questions, form]);
-
-
-  const { fields: lessonFields, append: appendLesson, remove: removeLesson } = useFieldArray({
-    control: form.control,
-    name: 'lessons',
-  });
-  
-  const { fields: questionFields, append: appendQuestion, remove: removeQuestion } = useFieldArray({
-    control: form.control,
-    name: 'questions',
-  });
-  
-  const originalLessons = React.useRef<Lesson[]>([]);
-  useEffect(() => {
-      if (lessons) {
-          originalLessons.current = lessons;
-      }
-  }, [lessons]);
-  
-  const originalQuestions = React.useRef<Question[]>([]);
-  useEffect(() => {
-    if (questions) {
-      originalQuestions.current = questions;
-    }
-  }, [questions]);
-
-
-  const onSubmit = async (data: CourseFormValues) => {
-    if (!firestore || !user || !courseRef || userProfile?.role === 'Student') return;
-    setIsLoading(true);
-
-    try {
-      const updatedCourse = {
-        id: courseId, // Ensure id is present
-        title: data.title,
-        description: data.description,
-        category: data.category,
-        difficulty: data.difficulty,
-        whatYouWillLearn: data.whatYouWillLearn.split(',').map(item => item.trim()),
-        prerequisites: data.prerequisites,
-        instructorBio: data.instructorBio,
-        tags: data.tags ? data.tags.split(',').map(tag => tag.trim()) : [],
-        thumbnail: data.thumbnail,
-        passingScore: data.passingScore,
-      };
-      
-      await setDoc(courseRef, updatedCourse, { merge: true });
-      
-      // Handle Lessons
-      const newLessonIds = data.lessons.map(l => l.id).filter(Boolean);
-      const lessonsToDelete = originalLessons.current.filter(l => !newLessonIds.includes(l.id));
-      for (const lessonToDelete of lessonsToDelete) {
-          const lessonRefToDelete = doc(firestore, `courses/${courseId}/lessons/${lessonToDelete.id}`);
-          deleteDocumentNonBlocking(lessonRefToDelete);
-      }
-      for (let i = 0; i < data.lessons.length; i++) {
-        const lesson = data.lessons[i];
-        let lessonRef = lesson.id 
-            ? doc(firestore, `courses/${courseId}/lessons`, lesson.id)
-            : doc(collection(firestore, `courses/${courseId}/lessons`));
-        
-        await setDoc(lessonRef, {
-            id: lessonRef.id, courseId: courseId, title: lesson.title, type: lesson.type,
-            content: lesson.content, duration: lesson.duration, order: i + 1, transcript: lesson.transcript,
-        }, { merge: true });
-      }
-
-      // Handle Questions
-      const newQuestionIds = data.questions.map(q => q.id).filter(Boolean);
-      const questionsToDelete = originalQuestions.current.filter(q => !newQuestionIds.includes(q.id));
-      for (const qToDelete of questionsToDelete) {
-          const questionRefToDelete = doc(firestore, `courses/${courseId}/questions/${qToDelete.id}`);
-          deleteDocumentNonBlocking(questionRefToDelete);
-      }
-      for (let i = 0; i < data.questions.length; i++) {
-        const question = data.questions[i];
-         let questionRef = question.id
-            ? doc(firestore, `courses/${courseId}/questions`, question.id)
-            : doc(collection(firestore, `courses/${courseId}/questions`));
-
-        const questionOptions = (question.type === 'mcq' && question.options) ? question.options.split(',').map(o => o.trim()) : [];
-
-        await setDoc(questionRef, {
-            id: questionRef.id, courseId: courseId, text: question.text, type: question.type,
-            options: questionOptions,
-            correctAnswer: question.correctAnswer, order: i + 1,
-        }, { merge: true });
-      }
-
-      router.push(`/instructor`);
-    } catch (error) {
-      console.error('Error updating course:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const pageIsLoading = isProfileLoading || isCourseLoading || areLessonsLoading || areQuestionsLoading;
-  
-  const Content = () => {
     if (pageIsLoading) {
      return (
         <div className="flex justify-center items-center h-96">
@@ -256,7 +107,7 @@ export default function EditCoursePage() {
      )
     }
     
-    if (userProfile?.role === 'Student' || (course && course.instructorId !== user?.uid)) {
+    if (userProfile?.role === 'Student' || (course && course.instructorId !== userId)) {
         return (
             <div className="max-w-4xl mx-auto">
                 <Card className="mt-10 border-destructive">
@@ -635,14 +486,210 @@ export default function EditCoursePage() {
         </Card>
       </div>
     );
-  }
+});
+
+export default function EditCoursePage() {
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const params = useParams<{ courseId: string }>();
+  const { courseId } = params;
+
+  const { firestore, user } = useFirebase();
+
+  const userProfileRef = useMemoFirebase(
+    () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
+    [firestore, user]
+  );
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
+
+  const courseRef = useMemoFirebase(
+      () => (firestore && courseId ? doc(firestore, 'courses', courseId) : null),
+      [firestore, courseId]
+  )
+  const { data: course, isLoading: isCourseLoading } = useDoc<Course & { passingScore?: number }>(courseRef);
+
+  const lessonsRef = useMemoFirebase(
+    () => (firestore && courseId ? query(collection(firestore, `courses/${courseId}/lessons`), orderBy('order')) : null),
+    [firestore, courseId]
+  )
+  const { data: lessons, isLoading: areLessonsLoading } = useCollection<Lesson>(lessonsRef);
+
+  const questionsRef = useMemoFirebase(
+    () => (firestore && courseId ? query(collection(firestore, `courses/${courseId}/questions`), orderBy('order')) : null),
+    [firestore, courseId]
+  )
+  const { data: questions, isLoading: areQuestionsLoading } = useCollection<Question>(questionsRef);
+
+
+  const form = useForm<CourseFormValues>({
+    resolver: zodResolver(courseSchema),
+    defaultValues: {
+      title: '',
+      description: '',
+      category: '',
+      difficulty: 'Beginner',
+      whatYouWillLearn: '',
+      prerequisites: '',
+      instructorBio: '',
+      tags: '',
+      thumbnail: '',
+      passingScore: 70,
+      lessons: [],
+      questions: [],
+    },
+  });
+  
+  useEffect(() => {
+    if (course && lessons && questions) {
+      form.reset({
+        title: course.title,
+        description: course.description,
+        category: course.category,
+        difficulty: course.difficulty,
+        whatYouWillLearn: course.whatYouWillLearn?.join(', ') || '',
+        prerequisites: course.prerequisites || '',
+        instructorBio: course.instructorBio || '',
+        tags: course.tags?.join(', ') || '',
+        thumbnail: course.thumbnail,
+        passingScore: course.passingScore || 70,
+        lessons: lessons.map(l => ({
+          id: l.id,
+          title: l.title,
+          type: l.type,
+          content: l.content,
+          duration: l.duration || 0,
+          transcript: l.transcript || '',
+        })),
+        questions: questions.map(q => ({
+          id: q.id,
+          text: q.text,
+          type: q.type,
+          options: q.options?.join(','),
+          correctAnswer: q.correctAnswer,
+        }))
+      });
+    }
+  }, [course, lessons, questions, form]);
+
+
+  const { fields: lessonFields, append: appendLesson, remove: removeLesson } = useFieldArray({
+    control: form.control,
+    name: 'lessons',
+  });
+  
+  const { fields: questionFields, append: appendQuestion, remove: removeQuestion } = useFieldArray({
+    control: form.control,
+    name: 'questions',
+  });
+  
+  const originalLessons = React.useRef<Lesson[]>([]);
+  useEffect(() => {
+      if (lessons) {
+          originalLessons.current = lessons;
+      }
+  }, [lessons]);
+  
+  const originalQuestions = React.useRef<Question[]>([]);
+  useEffect(() => {
+    if (questions) {
+      originalQuestions.current = questions;
+    }
+  }, [questions]);
+
+
+  const onSubmit = async (data: CourseFormValues) => {
+    if (!firestore || !user || !courseRef || userProfile?.role === 'Student') return;
+    setIsLoading(true);
+
+    try {
+      const updatedCourse = {
+        id: courseId, // Ensure id is present
+        title: data.title,
+        description: data.description,
+        category: data.category,
+        difficulty: data.difficulty,
+        whatYouWillLearn: data.whatYouWillLearn.split(',').map(item => item.trim()),
+        prerequisites: data.prerequisites,
+        instructorBio: data.instructorBio,
+        tags: data.tags ? data.tags.split(',').map(tag => tag.trim()) : [],
+        thumbnail: data.thumbnail,
+        passingScore: data.passingScore,
+      };
+      
+      await setDoc(courseRef, updatedCourse, { merge: true });
+      
+      // Handle Lessons
+      const newLessonIds = data.lessons.map(l => l.id).filter(Boolean);
+      const lessonsToDelete = originalLessons.current.filter(l => !newLessonIds.includes(l.id));
+      for (const lessonToDelete of lessonsToDelete) {
+          const lessonRefToDelete = doc(firestore, `courses/${courseId}/lessons/${lessonToDelete.id}`);
+          deleteDocumentNonBlocking(lessonRefToDelete);
+      }
+      for (let i = 0; i < data.lessons.length; i++) {
+        const lesson = data.lessons[i];
+        let lessonRef = lesson.id 
+            ? doc(firestore, `courses/${courseId}/lessons`, lesson.id)
+            : doc(collection(firestore, `courses/${courseId}/lessons`));
+        
+        await setDoc(lessonRef, {
+            id: lessonRef.id, courseId: courseId, title: lesson.title, type: lesson.type,
+            content: lesson.content, duration: lesson.duration, order: i + 1, transcript: lesson.transcript,
+        }, { merge: true });
+      }
+
+      // Handle Questions
+      const newQuestionIds = data.questions.map(q => q.id).filter(Boolean);
+      const questionsToDelete = originalQuestions.current.filter(q => !newQuestionIds.includes(q.id));
+      for (const qToDelete of questionsToDelete) {
+          const questionRefToDelete = doc(firestore, `courses/${courseId}/questions/${qToDelete.id}`);
+          deleteDocumentNonBlocking(questionRefToDelete);
+      }
+      for (let i = 0; i < data.questions.length; i++) {
+        const question = data.questions[i];
+         let questionRef = question.id
+            ? doc(firestore, `courses/${courseId}/questions`, question.id)
+            : doc(collection(firestore, `courses/${courseId}/questions`));
+
+        const questionOptions = (question.type === 'mcq' && question.options) ? question.options.split(',').map(o => o.trim()) : [];
+
+        await setDoc(questionRef, {
+            id: questionRef.id, courseId: courseId, text: question.text, type: question.type,
+            options: questionOptions,
+            correctAnswer: question.correctAnswer, order: i + 1,
+        }, { merge: true });
+      }
+
+      router.push(`/instructor`);
+    } catch (error) {
+      console.error('Error updating course:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const pageIsLoading = isProfileLoading || isCourseLoading || areLessonsLoading || areQuestionsLoading;
 
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-1 container mx-auto px-4 md:px-6 py-8">
-        <Content />
+        <Content 
+            form={form}
+            onSubmit={onSubmit}
+            isLoading={isLoading}
+            pageIsLoading={pageIsLoading}
+            userProfile={userProfile}
+            course={course || null}
+            userId={user?.uid}
+            lessonFields={lessonFields}
+            appendLesson={appendLesson}
+            removeLesson={removeLesson}
+            questionFields={questionFields}
+            appendQuestion={appendQuestion}
+            removeQuestion={removeQuestion}
+        />
       </main>
     </div>
   );
 }
+
