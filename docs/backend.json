@@ -53,16 +53,31 @@
           "type": "string",
           "description": "Reference to Instructor. (Relationship: Instructor 1:N Course)"
         },
+        "instructorBio": {
+          "type": "string",
+          "description": "A short biography of the course instructor."
+        },
         "category": {
           "type": "string",
           "description": "Category that the course belongs to (e.g., 'Programming', 'Design')."
         },
         "tags": {
           "type": "array",
-          "description": "Tags associated with the course (e.g., 'beginner', 'advanced', 'react').",
+          "description": "Tags associated with the course for filtering (e.g., 'react', 'python').",
           "items": {
             "type": "string"
           }
+        },
+        "whatYouWillLearn": {
+          "type": "array",
+          "description": "A list of key topics or skills students will learn.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "prerequisites": {
+          "type": "string",
+          "description": "A description of the prerequisites for the course."
         },
         "difficulty": {
           "type": "string",
@@ -75,7 +90,9 @@
         "description",
         "instructorId",
         "category",
-        "difficulty"
+        "difficulty",
+        "prerequisites",
+        "instructorBio"
       ]
     },
     "Lesson": {
@@ -307,4 +324,3 @@
     "reasoning": "The Firestore structure is designed to support the InternAdda Courses application's core features, including course browsing, lesson playback, progress tracking, and note-taking, while adhering to the principles of Authorization Independence, Structural Segregation, and Access Modeling.  Authorization Independence is achieved through denormalization of instructor IDs in courses and user IDs in progress and notes. This avoids the need for `get()` calls in security rules. Structural Segregation is maintained by keeping user-specific data (progress, notes) separate from course data. Access Modeling employs path-based ownership for user-related data and the membership map pattern is not used since there is no collaborative data required.\n\nThe `courses` collection stores general course information, and instructorId is stored in the document which allows instructor-based `list` operations. Each user has their own subcollection for courses and progress to efficiently manage access and data. Lessons are structured within courses which avoids collection group queries and enables efficient retrieval of lessons and notes associated with them. The structure supports the required QAPs by enabling secure `list` operations using path-based rules for user-owned data.\n\nSpecifically:\n\n*   **Courses:** Stores the courses and supports listing courses.\n*   **Users:** Stores user data.\n*   **Progress:** User's progress within a course.\n*   **Notes:** User's notes within a course."
   }
 }
-    

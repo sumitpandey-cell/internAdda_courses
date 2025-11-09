@@ -46,7 +46,10 @@ const courseSchema = z.object({
   description: z.string().min(20, 'Description must be at least 20 characters.'),
   category: z.string().min(1, 'Category is required.'),
   difficulty: z.enum(['Beginner', 'Intermediate', 'Advanced']),
-  tags: z.string().min(1, 'Please add at least one tag.'),
+  whatYouWillLearn: z.string().min(1, 'Please list at least one topic.'),
+  prerequisites: z.string().min(1, 'Prerequisites are required.'),
+  instructorBio: z.string().min(20, 'Instructor bio must be at least 20 characters.'),
+  tags: z.string().optional(),
   thumbnail: z.string().url('Please enter a valid image URL.'),
   lessons: z.array(lessonSchema).min(1, 'Please add at least one lesson.'),
 });
@@ -86,6 +89,9 @@ export default function EditCoursePage() {
       description: '',
       category: '',
       difficulty: 'Beginner',
+      whatYouWillLearn: '',
+      prerequisites: '',
+      instructorBio: '',
       tags: '',
       thumbnail: '',
       lessons: [],
@@ -99,7 +105,10 @@ export default function EditCoursePage() {
         description: course.description,
         category: course.category,
         difficulty: course.difficulty,
-        tags: course.tags.join(', '),
+        whatYouWillLearn: course.whatYouWillLearn?.join(', ') || '',
+        prerequisites: course.prerequisites || '',
+        instructorBio: course.instructorBio || '',
+        tags: course.tags?.join(', ') || '',
         thumbnail: course.thumbnail,
         lessons: lessons.map(l => ({
           id: l.id,
@@ -138,7 +147,10 @@ export default function EditCoursePage() {
         description: data.description,
         category: data.category,
         difficulty: data.difficulty,
-        tags: data.tags.split(',').map(tag => tag.trim()),
+        whatYouWillLearn: data.whatYouWillLearn.split(',').map(item => item.trim()),
+        prerequisites: data.prerequisites,
+        instructorBio: data.instructorBio,
+        tags: data.tags ? data.tags.split(',').map(tag => tag.trim()) : [],
         thumbnail: data.thumbnail,
         // instructorId and name are not changed
       };
@@ -242,7 +254,7 @@ export default function EditCoursePage() {
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Course Description</FormLabel>
+                      <FormLabel>Course Overview</FormLabel>
                       <FormControl>
                         <Textarea placeholder="Describe what students will learn in this course." {...field} />
                       </FormControl>
@@ -250,6 +262,52 @@ export default function EditCoursePage() {
                     </FormItem>
                   )}
                 />
+                
+                 <FormField
+                  control={form.control}
+                  name="whatYouWillLearn"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>What You Will Learn</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="e.g., Build dynamic web apps, Master React Hooks, Manage state with Redux" {...field} />
+                      </FormControl>
+                       <FormDescription>
+                        Comma-separated list of key topics or skills.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="prerequisites"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Prerequisites</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="e.g., Basic understanding of HTML, CSS, and JavaScript." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="instructorBio"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Instructor Bio</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="A short bio about the instructor." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <FormField
@@ -294,12 +352,12 @@ export default function EditCoursePage() {
                   name="tags"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tags</FormLabel>
+                      <FormLabel>Tags (for filtering)</FormLabel>
                       <FormControl>
                         <Input placeholder="e.g., react, javascript, frontend" {...field} />
                       </FormControl>
                       <FormDescription>
-                        Comma-separated list of tags.
+                        Comma-separated list of tags for searching and filtering.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

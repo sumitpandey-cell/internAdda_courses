@@ -113,7 +113,7 @@ export default function CoursePage() {
                         <Skeleton className="h-16 w-full" />
                      ) : (
                         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4 list-none p-0">
-                          {course?.tags?.map((topic) => (
+                          {course?.whatYouWillLearn?.map((topic) => (
                             <li key={topic} className="flex items-center gap-3">
                               <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
                               <span className="text-muted-foreground">{topic}</span>
@@ -141,7 +141,7 @@ export default function CoursePage() {
                             <div>
                                 <h3 className="font-bold text-lg">{course?.instructor}</h3>
                                 <p className="text-muted-foreground text-sm">Expert in {course?.category}</p>
-                                <p className="text-muted-foreground text-sm mt-1">A passionate educator dedicated to making technology accessible to everyone.</p>
+                                <p className="text-muted-foreground text-sm mt-1">{course?.instructorBio}</p>
                             </div>
                         </>
                      )}
@@ -155,7 +155,7 @@ export default function CoursePage() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground">No prior experience required. This course is designed for absolute beginners!</p>
+                        <p className="text-muted-foreground">{course?.prerequisites}</p>
                     </CardContent>
                 </Card>
               </div>
@@ -226,4 +226,3 @@ export default function CoursePage() {
     </div>
   );
 }
-

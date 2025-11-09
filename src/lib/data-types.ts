@@ -1,3 +1,4 @@
+
 export type Lesson = {
   id: string;
   title: string;
@@ -14,11 +15,13 @@ export type Course = {
   description: string;
   instructor: string;
   instructorId: string;
+  instructorBio: string;
   category: string;
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
   tags: string[];
+  whatYouWillLearn: string[];
+  prerequisites: string;
   thumbnail: string;
-  heroImage?: string;
 };
 
 export type UserProgress = {

@@ -46,7 +46,10 @@ const courseSchema = z.object({
   description: z.string().min(20, 'Description must be at least 20 characters.'),
   category: z.string().min(1, 'Category is required.'),
   difficulty: z.enum(['Beginner', 'Intermediate', 'Advanced']),
-  tags: z.string().min(1, 'Please add at least one tag.'),
+  whatYouWillLearn: z.string().min(1, 'Please list at least one topic.'),
+  prerequisites: z.string().min(1, 'Prerequisites are required.'),
+  instructorBio: z.string().min(20, 'Instructor bio must be at least 20 characters.'),
+  tags: z.string().optional(),
   thumbnail: z.string().url('Please enter a valid image URL.'),
   lessons: z.array(lessonSchema).min(1, 'Please add at least one lesson.'),
 });
@@ -71,6 +74,9 @@ export default function NewCoursePage() {
       description: '',
       category: '',
       difficulty: 'Beginner',
+      whatYouWillLearn: '',
+      prerequisites: 'No prior experience required. This course is designed for absolute beginners!',
+      instructorBio: 'A passionate educator dedicated to making technology accessible to everyone.',
       tags: '',
       thumbnail: '',
       lessons: [],
@@ -104,7 +110,10 @@ export default function NewCoursePage() {
         description: data.description,
         category: data.category,
         difficulty: data.difficulty,
-        tags: data.tags.split(',').map(tag => tag.trim()),
+        whatYouWillLearn: data.whatYouWillLearn.split(',').map(item => item.trim()),
+        prerequisites: data.prerequisites,
+        instructorBio: data.instructorBio,
+        tags: data.tags ? data.tags.split(',').map(tag => tag.trim()) : [],
         thumbnail: data.thumbnail,
         instructorId: user.uid,
         instructor: user.displayName || 'Anonymous', // Denormalize instructor name
@@ -198,9 +207,54 @@ export default function NewCoursePage() {
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Course Description</FormLabel>
+                      <FormLabel>Course Overview</FormLabel>
                       <FormControl>
                         <Textarea placeholder="Describe what students will learn in this course." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="whatYouWillLearn"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>What You Will Learn</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="e.g., Build dynamic web apps, Master React Hooks, Manage state with Redux" {...field} />
+                      </FormControl>
+                       <FormDescription>
+                        Comma-separated list of key topics or skills.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="prerequisites"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Prerequisites</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="e.g., Basic understanding of HTML, CSS, and JavaScript." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="instructorBio"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Instructor Bio</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="A short bio about the instructor." {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -250,12 +304,12 @@ export default function NewCoursePage() {
                   name="tags"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tags</FormLabel>
+                      <FormLabel>Tags (for filtering)</FormLabel>
                       <FormControl>
                         <Input placeholder="e.g., react, javascript, frontend" {...field} />
                       </FormControl>
                       <FormDescription>
-                        Comma-separated list of tags.
+                        Comma-separated list of tags for searching and filtering.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
