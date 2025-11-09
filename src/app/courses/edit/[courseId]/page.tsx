@@ -31,7 +31,6 @@ import {
 import { Loader2, PlusCircle, Trash2, ShieldAlert } from 'lucide-react';
 import type { UserProfile, Course, Lesson, Question } from '@/lib/data-types';
 import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
 
 const lessonSchema = z.object({
   id: z.string().optional(),
@@ -644,7 +643,6 @@ export default function EditCoursePage() {
       <main className="flex-1 container mx-auto px-4 md:px-6 py-8">
         <Content />
       </main>
-      <Footer />
     </div>
   );
 }

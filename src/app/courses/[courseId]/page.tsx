@@ -13,7 +13,6 @@ import { PlayCircle, CheckCircle, Lock, ArrowLeft, BookCheck, Target, UserCircle
 import type { Course, Lesson, UserProgress } from '@/lib/data-types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function CoursePage() {
@@ -222,7 +221,6 @@ export default function CoursePage() {
           </div>
         </div>
       </main>
-      <Footer />
     </div>
   );
 }

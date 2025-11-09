@@ -1,3 +1,4 @@
+
 'use client';
 
 import { CourseProgressCard } from '@/components/dashboard/CourseProgressCard';
@@ -11,7 +12,6 @@ import { Award, BookCopy, CheckCircle, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
 
 export default function DashboardPage() {
   const { firestore, user, isUserLoading } = useFirebase();
@@ -130,7 +130,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
-      <Footer />
     </div>
   );
 }

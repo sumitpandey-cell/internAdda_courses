@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -9,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { PlusCircle } from 'lucide-react';
 import { CourseManagementTable } from '@/components/instructor/CourseManagementTable';
 import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
 
 export default function InstructorDashboardPage() {
   const { firestore, user } = useFirebase();
@@ -77,7 +77,6 @@ export default function InstructorDashboardPage() {
       <main className="flex-1 container mx-auto px-4 md:px-6 py-8">
         <Content />
       </main>
-      <Footer />
     </div>
   )
 }

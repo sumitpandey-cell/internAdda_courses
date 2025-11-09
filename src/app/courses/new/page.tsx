@@ -32,7 +32,6 @@ import {
 import { Loader2, PlusCircle, Trash2, ShieldAlert } from 'lucide-react';
 import type { UserProfile } from '@/lib/data-types';
 import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
 
 const lessonSchema = z.object({
   title: z.string().min(1, 'Title is required.'),
@@ -568,7 +567,6 @@ export default function NewCoursePage() {
       <main className="flex-1 container mx-auto px-4 md:px-6 py-8">
         <Content />
       </main>
-      <Footer />
     </div>
   );
 }

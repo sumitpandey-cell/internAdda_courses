@@ -13,7 +13,6 @@ import { Certificate } from '@/components/courses/Certificate';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
 import type { Course } from '@/lib/data-types';
 
 export default function CourseCompletedPage() {
@@ -102,8 +101,6 @@ export default function CourseCompletedPage() {
       <div className="absolute -left-[9999px] -top-[9999px]">
         <Certificate ref={certificateRef} course={course} studentName={user?.displayName || 'Valued Student'} />
       </div>
-
-      <Footer />
     </div>
   );
 }

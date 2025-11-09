@@ -1,3 +1,4 @@
+
 'use client';
 
 import { StatsCard } from '@/components/dashboard/StatsCard';
@@ -8,7 +9,6 @@ import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import { Users, BookOpen, DollarSign } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
 
 export default function AdminPage() {
   const { firestore } = useFirebase();
@@ -70,7 +70,6 @@ export default function AdminPage() {
           </div>
         </div>
       </main>
-      <Footer />
     </div>
   );
 }
