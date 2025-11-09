@@ -87,7 +87,8 @@ service cloud.firestore {
      */
     match /courses/{courseId}/lessons/{lessonId} {
         allow get, list: if true;
-        allow create, update, delete: if isCourseInstructor(courseId);
+        allow create: if isSignedIn();
+        allow update, delete: if isCourseInstructor(courseId);
     }
 
     /**
@@ -96,7 +97,8 @@ service cloud.firestore {
      */
     match /courses/{courseId}/questions/{questionId} {
         allow get: if isSignedIn();
-        allow create, update, delete: if isCourseInstructor(courseId);
+        allow create: if isSignedIn();
+        allow update, delete: if isCourseInstructor(courseId);
         // Explicitly disallow list on a single document path
         allow list: if false; 
     }

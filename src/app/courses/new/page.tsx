@@ -166,7 +166,6 @@ export default function NewCoursePage() {
         await setDoc(questionDocRef, { id: questionDocRef.id }, { merge: true });
       }
 
-
       router.push(`/courses/${courseId}`);
     } catch (error) {
       console.error('Error creating course:', error);
