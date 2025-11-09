@@ -14,6 +14,12 @@ import type { Course, Lesson, UserProgress } from '@/lib/data-types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Header } from '@/components/layout/Header';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 
 export default function CoursePage() {
   const params = useParams<{ courseId: string }>();
@@ -48,7 +54,7 @@ export default function CoursePage() {
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-1">
-        <div className="max-w-6xl mx-auto py-8 px-4 md:px-6">
+        <div className="container mx-auto max-w-6xl py-6 lg:py-10">
           <div className="mb-6">
             <Button variant="outline" asChild>
               <Link href="/">
@@ -57,8 +63,71 @@ export default function CoursePage() {
               </Link>
             </Button>
           </div>
-          <div className="grid md:grid-cols-3 gap-8 md:gap-12">
-            <div className="md:col-span-2 space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-12">
+            
+            {/* Right column (sticky on desktop) - Shown first on mobile */}
+            <aside className="lg:col-span-1 lg:sticky lg:top-24 self-start space-y-6 mb-8 lg:mb-0">
+                <Card className="overflow-hidden shadow-lg">
+                    {courseLoading ? (
+                        <Skeleton className="aspect-video w-full" />
+                    ) : (
+                        <Image
+                        src={course?.thumbnail || 'https://picsum.photos/seed/placeholder/600/400'}
+                        alt={course?.title || 'Course thumbnail'}
+                        width={600}
+                        height={400}
+                        className="aspect-video w-full object-cover"
+                        />
+                    )}
+                    <CardContent className="p-6 space-y-4">
+                        <Button size="lg" asChild className="w-full" disabled={lessonsLoading || !firstLessonId}>
+                            <Link href={startLink}>
+                            <PlayCircle className="mr-2 h-5 w-5" />
+                            {user ? (progress?.percentage === 0 || !progress ? 'Start Course' : 'Continue Learning') : 'Enroll to Start'}
+                            </Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+
+                 <div className="lg:hidden">
+                    <h3 className="text-xl font-bold font-headline mb-4">Course Content</h3>
+                    <Card>
+                    <CardContent className="p-2 max-h-96 overflow-y-auto space-y-1">
+                        {lessonsLoading ? (
+                        <div className="space-y-2 p-2">
+                            {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+                        </div>
+                        ) : (
+                        lessons?.map((lesson, index) => {
+                            const isCompleted = user && progress?.completedLessons?.includes(lesson.id);
+                            const lessonDestination = `/courses/${courseId}/lesson/${lesson.id}`;
+                            const lessonLink = user ? lessonDestination : `/login?redirect=${lessonDestination}`;
+                            return (
+                            <Link key={lesson.id} href={lessonLink}>
+                                <div className={`flex items-center p-3 rounded-md transition-colors hover:bg-muted/50 cursor-pointer`}>
+                                <div className="flex items-center gap-4 flex-1">
+                                    <div className="text-muted-foreground font-mono text-sm">{String(index + 1).padStart(2, '0')}</div>
+                                    <p className="font-medium text-sm flex-1">{lesson.title}</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {user ? (
+                                    isCompleted ? <CheckCircle className="h-5 w-5 text-green-500" /> : <PlayCircle className="h-5 w-5 text-muted-foreground" />
+                                    ) : (
+                                    <Lock className="h-5 w-5 text-muted-foreground" />
+                                    )}
+                                </div>
+                                </div>
+                            </Link>
+                            );
+                        })
+                        )}
+                    </CardContent>
+                    </Card>
+                </div>
+            </aside>
+            
+            {/* Left Column - Details */}
+            <div className="lg:col-span-2 space-y-8">
               {courseLoading ? (
                 <>
                   <Skeleton className="h-6 w-24" />
@@ -69,7 +138,7 @@ export default function CoursePage() {
                 <>
                   <Badge variant="secondary">{course?.category}</Badge>
                   <h1 className="text-4xl font-bold font-headline">{course?.title}</h1>
-                  <div className="flex items-center gap-4 text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
                      <div className="flex items-center gap-2">
                       <UserCircle className="h-5 w-5" />
                       <span>by {course?.instructor}</span>
@@ -82,7 +151,6 @@ export default function CoursePage() {
                 </>
               )}
 
-              {/* New Detailed Sections */}
               <div className="space-y-8">
                 <Card>
                   <CardHeader>
@@ -99,6 +167,43 @@ export default function CoursePage() {
                     )}
                   </CardContent>
                 </Card>
+
+                 <div className="hidden lg:block">
+                    <h3 className="text-xl font-bold font-headline mb-4">Course Content</h3>
+                    <Card>
+                    <CardContent className="p-2 max-h-[600px] overflow-y-auto space-y-1">
+                        {lessonsLoading ? (
+                        <div className="space-y-2 p-2">
+                            {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+                        </div>
+                        ) : (
+                        lessons?.map((lesson, index) => {
+                            const isCompleted = user && progress?.completedLessons?.includes(lesson.id);
+                            const lessonDestination = `/courses/${courseId}/lesson/${lesson.id}`;
+                            const lessonLink = user ? lessonDestination : `/login?redirect=${lessonDestination}`;
+                            return (
+                            <Link key={lesson.id} href={lessonLink}>
+                                <div className={`flex items-center p-3 rounded-md transition-colors hover:bg-muted/50 cursor-pointer`}>
+                                <div className="flex items-center gap-4 flex-1">
+                                    <div className="text-muted-foreground font-mono text-sm">{String(index + 1).padStart(2, '0')}</div>
+                                    <p className="font-medium text-sm flex-1">{lesson.title}</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {user ? (
+                                    isCompleted ? <CheckCircle className="h-5 w-5 text-green-500" /> : <PlayCircle className="h-5 w-5 text-muted-foreground" />
+                                    ) : (
+                                    <Lock className="h-5 w-5 text-muted-foreground" />
+                                    )}
+                                </div>
+                                </div>
+                            </Link>
+                            );
+                        })
+                        )}
+                    </CardContent>
+                    </Card>
+                </div>
+
 
                 <Card>
                   <CardHeader>
@@ -159,65 +264,7 @@ export default function CoursePage() {
                 </Card>
               </div>
             </div>
-            <div className="md:col-span-1 space-y-6 sticky top-24 self-start">
-              <Card className="overflow-hidden shadow-lg">
-                 {courseLoading ? (
-                    <Skeleton className="aspect-video w-full" />
-                  ) : (
-                    <Image
-                      src={course?.thumbnail || 'https://picsum.photos/seed/placeholder/600/400'}
-                      alt={course?.title || 'Course thumbnail'}
-                      width={600}
-                      height={400}
-                      className="aspect-video w-full object-cover"
-                    />
-                  )}
-                  <CardContent className="p-6 space-y-4">
-                     <Button size="lg" asChild className="w-full" disabled={lessonsLoading || !firstLessonId}>
-                        <Link href={startLink}>
-                          <PlayCircle className="mr-2 h-5 w-5" />
-                          {user ? (progress?.percentage === 0 || !progress ? 'Start Course' : 'Continue Learning') : 'Enroll to Start'}
-                        </Link>
-                      </Button>
-                  </CardContent>
-              </Card>
-              
-               <div>
-                <h3 className="text-xl font-bold font-headline mb-4">Course Content</h3>
-                <Card>
-                  <CardContent className="p-2 max-h-96 overflow-y-auto space-y-1">
-                    {lessonsLoading ? (
-                      <div className="space-y-2 p-2">
-                        {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
-                      </div>
-                    ) : (
-                      lessons?.map((lesson, index) => {
-                        const isCompleted = user && progress?.completedLessons?.includes(lesson.id);
-                        const lessonDestination = `/courses/${courseId}/lesson/${lesson.id}`;
-                        const lessonLink = user ? lessonDestination : `/login?redirect=${lessonDestination}`;
-                        return (
-                          <Link key={lesson.id} href={lessonLink}>
-                            <div className={`flex items-center p-3 rounded-md transition-colors hover:bg-muted/50 cursor-pointer`}>
-                              <div className="flex items-center gap-4 flex-1">
-                                <div className="text-muted-foreground font-mono text-sm">{String(index + 1).padStart(2, '0')}</div>
-                                <p className="font-medium text-sm flex-1">{lesson.title}</p>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                {user ? (
-                                  isCompleted ? <CheckCircle className="h-5 w-5 text-green-500" /> : <PlayCircle className="h-5 w-5 text-muted-foreground" />
-                                ) : (
-                                  <Lock className="h-5 w-5 text-muted-foreground" />
-                                )}
-                              </div>
-                            </div>
-                          </Link>
-                        );
-                      })
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
+            
           </div>
         </div>
       </main>
