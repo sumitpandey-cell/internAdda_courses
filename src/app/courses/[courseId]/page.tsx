@@ -75,7 +75,7 @@ export default function CoursePage() {
               ) : (
                 <>
                   <Badge variant="secondary">{course?.category}</Badge>
-                  <h1 className="text-4xl font-bold font-headline">{course?.title}</h1>
+                  <h1 className="text-4xl font-bold font-headline break-words">{course?.title}</h1>
                   <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
                      <div className="flex items-center gap-2">
                       <UserCircle className="h-5 w-5" />
@@ -101,7 +101,7 @@ export default function CoursePage() {
                     {courseLoading ? (
                       <Skeleton className="h-20 w-full" />
                     ) : (
-                      <p>{course?.description}</p>
+                      <p className="break-words">{course?.description}</p>
                     )}
                   </CardContent>
                 </Card>
@@ -124,7 +124,7 @@ export default function CoursePage() {
                                 <div className={`flex items-center p-3 rounded-md transition-colors hover:bg-muted/50 cursor-pointer`}>
                                 <div className="flex items-center gap-4 flex-1">
                                     <div className="text-muted-foreground font-mono text-sm">{String(index + 1).padStart(2, '0')}</div>
-                                    <p className="font-medium text-sm flex-1">{lesson.title}</p>
+                                    <p className="font-medium text-sm flex-1 break-words">{lesson.title}</p>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     {user ? (
@@ -158,7 +158,7 @@ export default function CoursePage() {
                           {course?.whatYouWillLearn?.map((topic) => (
                             <li key={topic} className="flex items-center gap-3">
                               <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                              <span className="text-muted-foreground">{topic}</span>
+                              <span className="text-muted-foreground break-words">{topic}</span>
                             </li>
                           ))}
                         </ul>
@@ -181,9 +181,9 @@ export default function CoursePage() {
                                 <AvatarFallback>{course?.instructor?.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div>
-                                <h3 className="font-bold text-lg">{course?.instructor}</h3>
+                                <h3 className="font-bold text-lg break-words">{course?.instructor}</h3>
                                 <p className="text-muted-foreground text-sm">Expert in {course?.category}</p>
-                                <p className="text-muted-foreground text-sm mt-1">{course?.instructorBio}</p>
+                                <p className="text-muted-foreground text-sm mt-1 break-words">{course?.instructorBio}</p>
                             </div>
                         </>
                      )}
@@ -197,7 +197,7 @@ export default function CoursePage() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground">{course?.prerequisites}</p>
+                        <p className="text-muted-foreground break-words">{course?.prerequisites}</p>
                     </CardContent>
                 </Card>
               </div>
@@ -232,4 +232,3 @@ export default function CoursePage() {
     </div>
   );
 }
-
