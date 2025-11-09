@@ -91,17 +91,17 @@ export function useCollection<T = any>(
             ? (memoizedTargetRefOrQuery as CollectionReference).path
             : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString()
 
-        const contextualError = new FirestorePermissionError({
-          operation: 'list',
-          path,
-        })
+        // const contextualError = new FirestorePermissionError({
+        //   operation: 'list',
+        //   path,
+        // })
 
-        setError(contextualError)
+        // setError(contextualError)
         setData(null)
         setIsLoading(false)
 
         // trigger global error propagation
-        errorEmitter.emit('permission-error', contextualError);
+        // errorEmitter.emit('permission-error', contextualError);
       }
     );
 
