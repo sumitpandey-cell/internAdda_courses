@@ -41,6 +41,13 @@ const lessonSchema = z.object({
   transcript: z.string().optional(),
 });
 
+const questionSchema = z.object({
+  text: z.string().min(1, 'Question text is required.'),
+  type: z.enum(['mcq', 'text']),
+  options: z.string().optional(), // Comma-separated for MCQ
+  correctAnswer: z.string().min(1, 'Correct answer is required.'),
+});
+
 const courseSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters.'),
   description: z.string().min(20, 'Description must be at least 20 characters.'),
@@ -51,8 +58,11 @@ const courseSchema = z.object({
   instructorBio: z.string().min(20, 'Instructor bio must be at least 20 characters.'),
   tags: z.string().optional(),
   thumbnail: z.string().url('Please enter a valid image URL.'),
+  passingScore: z.coerce.number().min(0).max(100, 'Passing score must be between 0 and 100.'),
   lessons: z.array(lessonSchema).min(1, 'Please add at least one lesson.'),
+  questions: z.array(questionSchema).min(1, 'Please add at least one test question.'),
 });
+
 
 type CourseFormValues = z.infer<typeof courseSchema>;
 
@@ -79,13 +89,20 @@ export default function NewCoursePage() {
       instructorBio: 'A passionate educator dedicated to making technology accessible to everyone.',
       tags: '',
       thumbnail: '',
+      passingScore: 70,
       lessons: [],
+      questions: [],
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields: lessonFields, append: appendLesson, remove: removeLesson } = useFieldArray({
     control: form.control,
     name: 'lessons',
+  });
+  
+  const { fields: questionFields, append: appendQuestion, remove: removeQuestion } = useFieldArray({
+    control: form.control,
+    name: 'questions',
   });
 
   useEffect(() => {
@@ -117,27 +134,36 @@ export default function NewCoursePage() {
         thumbnail: data.thumbnail,
         instructorId: user.uid,
         instructor: user.displayName || 'Anonymous', // Denormalize instructor name
+        passingScore: data.passingScore,
       };
       
-      // We are using setDoc here with the generated ref to ensure the ID is set correctly.
       await setDoc(courseRef, newCourse);
       
+      // Save lessons
       for (let i = 0; i < data.lessons.length; i++) {
         const lesson = data.lessons[i];
         const lessonCollectionRef = collection(firestore, `courses/${courseId}/lessons`);
         const lessonRef = doc(lessonCollectionRef);
         
         await setDoc(lessonRef, {
-          id: lessonRef.id, // Ensure the lesson ID is also stored in the document
-          courseId: courseId,
-          title: lesson.title,
-          type: lesson.type,
-          content: lesson.content,
-          duration: lesson.duration,
-          order: i + 1,
-          transcript: lesson.transcript,
+          id: lessonRef.id, courseId: courseId, title: lesson.title, type: lesson.type,
+          content: lesson.content, duration: lesson.duration, order: i + 1, transcript: lesson.transcript,
         });
       }
+      
+      // Save questions
+      for (let i = 0; i < data.questions.length; i++) {
+        const question = data.questions[i];
+        const questionCollectionRef = collection(firestore, `courses/${courseId}/questions`);
+        const questionRef = doc(questionCollectionRef);
+        
+        await setDoc(questionRef, {
+          id: questionRef.id, courseId: courseId, text: question.text, type: question.type,
+          options: question.type === 'mcq' ? question.options?.split(',').map(o => o.trim()) : [],
+          correctAnswer: question.correctAnswer, order: i + 1,
+        });
+      }
+
 
       router.push(`/courses/${courseId}`);
     } catch (error) {
@@ -182,7 +208,7 @@ export default function NewCoursePage() {
         <Card>
           <CardHeader>
             <CardTitle>Create New Course</CardTitle>
-            <CardDescription>Fill out the details below to create a new course. You must add at least one lesson.</CardDescription>
+            <CardDescription>Fill out the details below to create a new course. You must add at least one lesson and one test question.</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -261,7 +287,7 @@ export default function NewCoursePage() {
                   )}
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <FormField
                     control={form.control}
                     name="category"
@@ -297,6 +323,19 @@ export default function NewCoursePage() {
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={form.control}
+                    name="passingScore"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Passing Score (%)</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="e.g., 70" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                   />
                 </div>
 
                  <FormField
@@ -333,7 +372,7 @@ export default function NewCoursePage() {
                 {/* Lessons Section */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium">Lessons</h3>
-                  {fields.map((field, index) => (
+                  {lessonFields.map((field, index) => (
                     <Card key={field.id} className="p-4 bg-muted/50 relative">
                       <div className="space-y-4">
                          <FormField
@@ -412,7 +451,7 @@ export default function NewCoursePage() {
                           type="button"
                           variant="destructive"
                           size="sm"
-                          onClick={() => remove(index)}
+                          onClick={() => removeLesson(index)}
                           className="absolute top-2 right-2"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -423,11 +462,92 @@ export default function NewCoursePage() {
                    <Button
                     type="button"
                     variant="outline"
-                    onClick={() => append({ title: '', type: 'video', content: '', duration: 10, transcript: '' })}
+                    onClick={() => appendLesson({ title: '', type: 'video', content: '', duration: 10, transcript: '' })}
                   >
                     <PlusCircle className="mr-2 h-4 w-4" /> Add Lesson
                   </Button>
                 </div>
+                
+                {/* Questions Section */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Final Test Questions</h3>
+                  {questionFields.map((field, index) => (
+                    <Card key={field.id} className="p-4 bg-muted/50 relative">
+                        <div className="space-y-4">
+                            <FormField
+                                control={form.control}
+                                name={`questions.${index}.text`}
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Question {index + 1}</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name={`questions.${index}.type`}
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Question Type</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select type"/></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="mcq">Multiple Choice</SelectItem>
+                                        <SelectItem value="text">Text Answer</SelectItem>
+                                    </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            {form.watch(`questions.${index}.type`) === 'mcq' && (
+                                <FormField
+                                control={form.control}
+                                name={`questions.${index}.options`}
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Options (comma-separated)</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                            )}
+                             <FormField
+                                control={form.control}
+                                name={`questions.${index}.correctAnswer`}
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Correct Answer</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormDescription>For MCQs, this must exactly match one of the options.</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => removeQuestion(index)}
+                          className="absolute top-2 right-2"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </Card>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => appendQuestion({ text: '', type: 'mcq', correctAnswer: ''})}
+                    >
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Question
+                  </Button>
+                </div>
+
 
                 <Button type="submit" disabled={isLoading} size="lg">
                   {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}

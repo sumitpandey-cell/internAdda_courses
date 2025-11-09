@@ -3,26 +3,24 @@
  *
  * Core Philosophy:
  * This ruleset enforces a strict user-ownership model for user-specific data
- * (progress, notes) and allows public read access to courses while restricting
- * write access to authorized instructors.
+ * (progress, notes, test attempts) and allows public read access to courses
+ * while restricting write access to authorized instructors.
  *
  * Data Structure:
  * - /users/{userId}: Stores user profiles. User's ID is part of the path.
  * - /courses/{courseId}: Stores course information.
  * - /courses/{courseId}/lessons/{lessonId}: Stores lessons within a course.
+ * - /courses/{courseId}/questions/{questionId}: Stores test questions for a course.
  * - /users/{userId}/progress/{progressId}: Stores user progress for courses.
  * - /users/{userId}/notes/{noteId}: Stores user notes for lessons.
+ * - /users/{userId}/testAttempts/{attemptId}: Stores user test attempts.
  *
  * Key Security Decisions:
- * - Users can only access their own profiles, progress, and notes.
- * - Courses are publicly readable but only instructors can create, update, or
- *   delete them. The instructorId is denormalized onto the course document.
+ * - Users can only access their own profiles, progress, notes, and test attempts.
+ * - Courses, lessons, and questions are publicly readable but only instructors
+ *   can create, update, or delete them. The instructorId is denormalized
+ *   onto the course document.
  * - Listing user documents (profiles) is disallowed.
- *
- * Denormalization for Authorization:
- * - The `instructorId` is denormalized into the `/courses/{courseId}` document
- *   to allow for efficient instructor-based write access control without
- *   requiring additional `get()` calls.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -55,17 +53,16 @@ service cloud.firestore {
     }
 
     /**
+     * @description Checks if the user is the instructor for a given course.
+     * @param {string} courseId The ID of the course to check.
+     * @returns {boolean} True if the user is the instructor of the course.
+     */
+     function isCourseInstructor(courseId) {
+        return isSignedIn() && get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid;
+     }
+
+    /**
      * @description Enforces rules for user profiles.
-     * @path /users/{userId}
-     * @allow (create) User 'user_abc' can create their profile.
-     * @deny (create) User 'user_xyz' cannot create profile for 'user_abc'.
-     * @allow (get) User 'user_abc' can read their profile.
-     * @deny (get) User 'user_xyz' cannot read profile for 'user_abc'.
-     * @allow (update) User 'user_abc' can update their profile.
-     * @deny (update) User 'user_xyz' cannot update profile for 'user_abc'.
-     * @allow (delete) User 'user_abc' can delete their profile.
-     * @deny (delete) User 'user_xyz' cannot delete profile for 'user_abc'.
-     * @principle Enforces document ownership for writes and reads.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
@@ -77,16 +74,6 @@ service cloud.firestore {
 
     /**
      * @description Enforces rules for courses.
-     * @path /courses/{courseId}
-     * @allow (get) Any user can read any course.
-     * @allow (list) Any user can list courses.
-     * @allow (create) Instructor 'instructor_abc' can create a course with instructorId 'instructor_abc'.
-     * @deny (create) User 'user_xyz' cannot create a course with instructorId 'instructor_abc'.
-     * @allow (update) Instructor 'instructor_abc' can update a course where resource.data.instructorId == 'instructor_abc'.
-     * @deny (update) User 'user_xyz' cannot update a course where resource.data.instructorId == 'instructor_abc'.
-     * @allow (delete) Instructor 'instructor_abc' can delete a course where resource.data.instructorId == 'instructor_abc'.
-     * @deny (delete) User 'user_xyz' cannot delete a course where resource.data.instructorId == 'instructor_abc'.
-     * @principle Enforces instructor-based write access and allows public reads.
      */
     match /courses/{courseId} {
       allow get, list: if true;
@@ -97,36 +84,22 @@ service cloud.firestore {
 
     /**
      * @description Enforces rules for lessons within a course.
-     * @path /courses/{courseId}/lessons/{lessonId}
-     * @allow (get) Any user can read any lesson.
-     * @allow (list) Any user can list lessons in a course.
-     * @allow (create) Instructor 'instructor_abc' can create a lesson if they own the course.
-     * @deny (create) User 'user_xyz' cannot create a lesson.
-     * @allow (update) Instructor 'instructor_abc' can update a lesson if they own the course.
-     * @deny (update) User 'user_xyz' cannot update a lesson.
-     * @allow (delete) Instructor 'instructor_abc' can delete a lesson if they own the course.
-     * @deny (delete) User 'user_xyz' cannot delete a lesson.
-     * @principle Restricts write access to course instructors.
      */
     match /courses/{courseId}/lessons/{lessonId} {
         allow get, list: if true;
-        allow create: if isSignedIn() && get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid;
-        allow update: if isSignedIn() && resource != null && get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid;
-        allow delete: if isSignedIn() && resource != null && get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid;
+        allow create, update, delete: if isCourseInstructor(courseId);
+    }
+
+    /**
+     * @description Enforces rules for questions within a course.
+     */
+    match /courses/{courseId}/questions/{questionId} {
+        allow get, list: if true;
+        allow create, update, delete: if isCourseInstructor(courseId);
     }
 
     /**
      * @description Enforces rules for user progress tracking.
-     * @path /users/{userId}/progress/{progressId}
-     * @allow (create) User 'user_abc' can create their progress entry.
-     * @deny (create) User 'user_xyz' cannot create progress entry for 'user_abc'.
-     * @allow (get) User 'user_abc' can read their progress entry.
-     * @deny (get) User 'user_xyz' cannot read progress entry for 'user_abc'.
-     * @allow (update) User 'user_abc' can update their progress entry.
-     * @deny (update) User 'user_xyz' cannot update progress entry for 'user_abc'.
-     * @allow (delete) User 'user_abc' can delete their progress entry.
-     * @deny (delete) User 'user_xyz' cannot delete progress entry for 'user_abc'.
-     * @principle Enforces document ownership for writes and reads.
      */
     match /users/{userId}/progress/{progressId} {
       allow get, list: if isOwner(userId);
@@ -137,22 +110,22 @@ service cloud.firestore {
 
     /**
      * @description Enforces rules for user notes.
-     * @path /users/{userId}/notes/{noteId}
-     * @allow (create) User 'user_abc' can create their note.
-     * @deny (create) User 'user_xyz' cannot create note for 'user_abc'.
-     * @allow (get) User 'user_abc' can read their note.
-     * @deny (get) User 'user_xyz' cannot read note for 'user_abc'.
-     * @allow (update) User 'user_abc' can update their note.
-     * @deny (update) User 'user_xyz' cannot update note for 'user_abc'.
-     * @allow (delete) User 'user_abc' can delete their note.
-     * @deny (delete) User 'user_xyz' cannot delete note for 'user_abc'.
-     * @principle Enforces document ownership for writes and reads.
      */
     match /users/{userId}/notes/{noteId} {
       allow get, list: if isOwner(userId);
       allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
       allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
       allow delete: if isExistingOwner(userId);
+    }
+    
+    /**
+     * @description Enforces rules for user test attempts.
+     */
+    match /users/{userId}/testAttempts/{attemptId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
+        // Users cannot update or delete their past attempts.
+        allow update, delete: if false;
     }
   }
 }

@@ -54,3 +54,25 @@ export interface ChatMessage {
   content: string;
   recommendedCourseIds?: string[];
 }
+
+
+// New types for testing feature
+export type Question = {
+  id: string;
+  courseId: string;
+  text: string;
+  type: 'mcq' | 'text';
+  options?: string[];
+  correctAnswer: string;
+  order: number;
+}
+
+export type TestAttempt = {
+  id: string;
+  userId: string;
+  courseId: string;
+  answers: { questionId: string, answer: string }[];
+  score: number;
+  passed: boolean;
+  submittedAt: any; // Firestore timestamp
+}

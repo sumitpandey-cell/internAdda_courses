@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter, useParams } from 'next/navigation';
 import { useFirebase, setDocumentNonBlocking, useDoc, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, doc, setDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, query, orderBy, where } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,17 +28,25 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Loader2, PlusCircle, Trash2, ShieldAlert } from 'lucide-react';
-import type { UserProfile, Course, Lesson } from '@/lib/data-types';
+import type { UserProfile, Course, Lesson, Question } from '@/lib/data-types';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 
 const lessonSchema = z.object({
-  id: z.string().optional(), // Keep track of existing lessons
+  id: z.string().optional(),
   title: z.string().min(1, 'Title is required.'),
   type: z.enum(['video', 'text']),
   content: z.string().min(1, 'Content is required.'),
   duration: z.coerce.number().min(1, 'Duration must be at least 1 minute.'),
   transcript: z.string().optional(),
+});
+
+const questionSchema = z.object({
+  id: z.string().optional(),
+  text: z.string().min(1, 'Question text is required.'),
+  type: z.enum(['mcq', 'text']),
+  options: z.string().optional(), // Comma-separated for MCQ
+  correctAnswer: z.string().min(1, 'Correct answer is required.'),
 });
 
 const courseSchema = z.object({
@@ -51,7 +59,9 @@ const courseSchema = z.object({
   instructorBio: z.string().min(20, 'Instructor bio must be at least 20 characters.'),
   tags: z.string().optional(),
   thumbnail: z.string().url('Please enter a valid image URL.'),
+  passingScore: z.coerce.number().min(0).max(100, 'Passing score must be between 0 and 100.'),
   lessons: z.array(lessonSchema).min(1, 'Please add at least one lesson.'),
+  questions: z.array(questionSchema).min(1, 'Please add at least one test question.'),
 });
 
 type CourseFormValues = z.infer<typeof courseSchema>;
@@ -74,13 +84,20 @@ export default function EditCoursePage() {
       () => (firestore && courseId ? doc(firestore, 'courses', courseId) : null),
       [firestore, courseId]
   )
-  const { data: course, isLoading: isCourseLoading } = useDoc<Course>(courseRef);
+  const { data: course, isLoading: isCourseLoading } = useDoc<Course & { passingScore?: number }>(courseRef);
 
   const lessonsRef = useMemoFirebase(
-    () => (firestore && courseId ? collection(firestore, `courses/${courseId}/lessons`) : null),
+    () => (firestore && courseId ? query(collection(firestore, `courses/${courseId}/lessons`), orderBy('order')) : null),
     [firestore, courseId]
   )
   const { data: lessons, isLoading: areLessonsLoading } = useCollection<Lesson>(lessonsRef);
+
+  const questionsRef = useMemoFirebase(
+    () => (firestore && courseId ? query(collection(firestore, `courses/${courseId}/questions`), orderBy('order')) : null),
+    [firestore, courseId]
+  )
+  const { data: questions, isLoading: areQuestionsLoading } = useCollection<Question>(questionsRef);
+
 
   const form = useForm<CourseFormValues>({
     resolver: zodResolver(courseSchema),
@@ -94,12 +111,14 @@ export default function EditCoursePage() {
       instructorBio: '',
       tags: '',
       thumbnail: '',
+      passingScore: 70,
       lessons: [],
+      questions: [],
     },
   });
   
   useEffect(() => {
-    if (course && lessons) {
+    if (course && lessons && questions) {
       form.reset({
         title: course.title,
         description: course.description,
@@ -110,6 +129,7 @@ export default function EditCoursePage() {
         instructorBio: course.instructorBio || '',
         tags: course.tags?.join(', ') || '',
         thumbnail: course.thumbnail,
+        passingScore: course.passingScore || 70,
         lessons: lessons.map(l => ({
           id: l.id,
           title: l.title,
@@ -117,15 +137,27 @@ export default function EditCoursePage() {
           content: l.content,
           duration: l.duration || 0,
           transcript: l.transcript || '',
-        })).sort((a,b) => (lessons.find(l => l.id === a.id)?.order || 0) - (lessons.find(l => l.id === b.id)?.order || 0))
+        })),
+        questions: questions.map(q => ({
+          id: q.id,
+          text: q.text,
+          type: q.type,
+          options: q.options?.join(','),
+          correctAnswer: q.correctAnswer,
+        }))
       });
     }
-  }, [course, lessons, form]);
+  }, [course, lessons, questions, form]);
 
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields: lessonFields, append: appendLesson, remove: removeLesson } = useFieldArray({
     control: form.control,
     name: 'lessons',
+  });
+  
+  const { fields: questionFields, append: appendQuestion, remove: removeQuestion } = useFieldArray({
+    control: form.control,
+    name: 'questions',
   });
   
   const originalLessons = React.useRef<Lesson[]>([]);
@@ -134,6 +166,13 @@ export default function EditCoursePage() {
           originalLessons.current = lessons;
       }
   }, [lessons]);
+  
+  const originalQuestions = React.useRef<Question[]>([]);
+  useEffect(() => {
+    if (questions) {
+      originalQuestions.current = questions;
+    }
+  }, [questions]);
 
 
   const onSubmit = async (data: CourseFormValues) => {
@@ -152,19 +191,18 @@ export default function EditCoursePage() {
         instructorBio: data.instructorBio,
         tags: data.tags ? data.tags.split(',').map(tag => tag.trim()) : [],
         thumbnail: data.thumbnail,
-        // instructorId and name are not changed
+        passingScore: data.passingScore,
       };
       
       await setDoc(courseRef, updatedCourse, { merge: true });
       
+      // Handle Lessons
       const newLessonIds = data.lessons.map(l => l.id).filter(Boolean);
       const lessonsToDelete = originalLessons.current.filter(l => !newLessonIds.includes(l.id));
-
       for (const lessonToDelete of lessonsToDelete) {
           const lessonRefToDelete = doc(firestore, `courses/${courseId}/lessons/${lessonToDelete.id}`);
           deleteDocumentNonBlocking(lessonRefToDelete);
       }
-      
       for (let i = 0; i < data.lessons.length; i++) {
         const lesson = data.lessons[i];
         const lessonRef = lesson.id 
@@ -172,14 +210,28 @@ export default function EditCoursePage() {
             : doc(collection(firestore, `courses/${courseId}/lessons`));
         
         await setDoc(lessonRef, {
-            id: lessonRef.id,
-            courseId: courseId,
-            title: lesson.title,
-            type: lesson.type,
-            content: lesson.content,
-            duration: lesson.duration,
-            order: i + 1,
-            transcript: lesson.transcript,
+            id: lessonRef.id, courseId: courseId, title: lesson.title, type: lesson.type,
+            content: lesson.content, duration: lesson.duration, order: i + 1, transcript: lesson.transcript,
+        }, { merge: true });
+      }
+
+      // Handle Questions
+      const newQuestionIds = data.questions.map(q => q.id).filter(Boolean);
+      const questionsToDelete = originalQuestions.current.filter(q => !newQuestionIds.includes(q.id));
+      for (const qToDelete of questionsToDelete) {
+          const questionRefToDelete = doc(firestore, `courses/${courseId}/questions/${qToDelete.id}`);
+          deleteDocumentNonBlocking(questionRefToDelete);
+      }
+      for (let i = 0; i < data.questions.length; i++) {
+        const question = data.questions[i];
+        const questionRef = question.id
+            ? doc(firestore, `courses/${courseId}/questions`, question.id)
+            : doc(collection(firestore, `courses/${courseId}/questions`));
+
+        await setDoc(questionRef, {
+            id: questionRef.id, courseId: courseId, text: question.text, type: question.type,
+            options: question.type === 'mcq' ? question.options?.split(',').map(o => o.trim()) : [],
+            correctAnswer: question.correctAnswer, order: i + 1,
         }, { merge: true });
       }
 
@@ -191,7 +243,7 @@ export default function EditCoursePage() {
     }
   };
   
-  const pageIsLoading = isProfileLoading || isCourseLoading || areLessonsLoading;
+  const pageIsLoading = isProfileLoading || isCourseLoading || areLessonsLoading || areQuestionsLoading;
   
   const Content = () => {
     if (pageIsLoading) {
@@ -229,7 +281,7 @@ export default function EditCoursePage() {
         <Card>
           <CardHeader>
             <CardTitle>Edit Course</CardTitle>
-            <CardDescription>Update the details for your course.</CardDescription>
+            <CardDescription>Update the details for your course and its final test.</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -309,7 +361,7 @@ export default function EditCoursePage() {
                 />
 
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <FormField
                     control={form.control}
                     name="category"
@@ -345,6 +397,19 @@ export default function EditCoursePage() {
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={form.control}
+                    name="passingScore"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Passing Score (%)</FormLabel>
+                        <FormControl>
+                          <Input type="number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                   />
                 </div>
 
                  <FormField
@@ -381,7 +446,7 @@ export default function EditCoursePage() {
                 {/* Lessons Section */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium">Lessons</h3>
-                  {fields.map((field, index) => (
+                  {lessonFields.map((field, index) => (
                     <Card key={field.id} className="p-4 bg-muted/50 relative">
                       <div className="space-y-4">
                          <FormField
@@ -460,7 +525,7 @@ export default function EditCoursePage() {
                           type="button"
                           variant="destructive"
                           size="sm"
-                          onClick={() => remove(index)}
+                          onClick={() => removeLesson(index)}
                           className="absolute top-2 right-2"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -471,11 +536,92 @@ export default function EditCoursePage() {
                    <Button
                     type="button"
                     variant="outline"
-                    onClick={() => append({ title: '', type: 'video', content: '', duration: 10, transcript: '' })}
+                    onClick={() => appendLesson({ title: '', type: 'video', content: '', duration: 10, transcript: '' })}
                   >
                     <PlusCircle className="mr-2 h-4 w-4" /> Add Lesson
                   </Button>
                 </div>
+                
+                {/* Questions Section */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Final Test Questions</h3>
+                  {questionFields.map((field, index) => (
+                    <Card key={field.id} className="p-4 bg-muted/50 relative">
+                        <div className="space-y-4">
+                            <FormField
+                                control={form.control}
+                                name={`questions.${index}.text`}
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Question {index + 1}</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name={`questions.${index}.type`}
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Question Type</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="mcq">Multiple Choice</SelectItem>
+                                        <SelectItem value="text">Text Answer</SelectItem>
+                                    </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            {form.watch(`questions.${index}.type`) === 'mcq' && (
+                                <FormField
+                                control={form.control}
+                                name={`questions.${index}.options`}
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Options (comma-separated)</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                            )}
+                             <FormField
+                                control={form.control}
+                                name={`questions.${index}.correctAnswer`}
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Correct Answer</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormDescription>For MCQs, this must exactly match one of the options.</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => removeQuestion(index)}
+                          className="absolute top-2 right-2"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </Card>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => appendQuestion({ text: '', type: 'mcq', correctAnswer: ''})}
+                    >
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Question
+                  </Button>
+                </div>
+
 
                 <Button type="submit" disabled={isLoading} size="lg">
                   {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}

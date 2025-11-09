@@ -105,10 +105,8 @@ export default function LessonPage() {
     let newCompletedLessons = [...completedLessons];
 
     if (isCompleted) {
-      // If already completed, toggle it off (optional behavior, useful for review)
       newCompletedLessons = newCompletedLessons.filter(id => id !== lessonId);
     } else {
-      // If not completed, add it to the list
       if (!newCompletedLessons.includes(lessonId)) {
         newCompletedLessons.push(lessonId);
       }
@@ -131,7 +129,7 @@ export default function LessonPage() {
       router.push(`/courses/${courseId}/lesson/${nextLesson.id}`);
     } else if (percentage === 100 && !isCompleted) {
       // If it's the last lesson and it's being marked complete for the first time
-      router.push(`/courses/${courseId}/completed`);
+      router.push(`/courses/${courseId}/test`);
     }
   };
 
@@ -374,7 +372,7 @@ export default function LessonPage() {
                     ) : (
                         <>
                         <CheckCircle className="mr-2 h-5 w-5" />
-                        {isCompleted ? 'Course Completed' : 'Finish Course'}
+                        {isCompleted ? 'Proceed to Test' : 'Finish Course & Proceed to Test'}
                         </>
                     )}
                 </Button>

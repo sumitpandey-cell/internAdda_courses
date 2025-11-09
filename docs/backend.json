@@ -82,6 +82,10 @@
         "difficulty": {
           "type": "string",
           "description": "Difficulty level of the course (e.g., 'Beginner', 'Intermediate', 'Advanced')."
+        },
+        "passingScore": {
+          "type": "number",
+          "description": "The minimum score (percentage) required to pass the course test."
         }
       },
       "required": [
@@ -92,7 +96,8 @@
         "category",
         "difficulty",
         "prerequisites",
-        "instructorBio"
+        "instructorBio",
+        "passingScore"
       ]
     },
     "Lesson": {
@@ -138,6 +143,48 @@
         "type",
         "order"
       ]
+    },
+    "Question": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Question",
+      "type": "object",
+      "description": "Represents a single question in a course test.",
+      "properties": {
+        "id": { "type": "string" },
+        "courseId": { "type": "string" },
+        "text": { "type": "string" },
+        "type": { "type": "string", "enum": ["mcq", "text"] },
+        "options": { "type": "array", "items": { "type": "string" } },
+        "correctAnswer": { "type": "string" },
+        "order": { "type": "number" }
+      },
+      "required": ["id", "courseId", "text", "type", "correctAnswer", "order"]
+    },
+    "TestAttempt": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TestAttempt",
+      "type": "object",
+      "description": "Represents a user's attempt at a course test.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "answers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "questionId": { "type": "string" },
+              "answer": { "type": "string" }
+            },
+            "required": ["questionId", "answer"]
+          }
+        },
+        "score": { "type": "number" },
+        "passed": { "type": "boolean" },
+        "submittedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "courseId", "answers", "score", "passed", "submittedAt"]
     },
     "Progress": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -277,6 +324,30 @@
               "name": "lessonId",
               "description": "The unique identifier for the lesson."
             }
+          ]
+        }
+      },
+      {
+        "path": "/courses/{courseId}/questions/{questionId}",
+        "definition": {
+          "entityName": "Question",
+          "schema": { "$ref": "#/backend/entities/Question" },
+          "description": "Stores test questions for a course.",
+          "params": [
+            { "name": "courseId", "description": "The unique ID for the course." },
+            { "name": "questionId", "description": "The unique ID for the question." }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/testAttempts/{attemptId}",
+        "definition": {
+          "entityName": "TestAttempt",
+          "schema": { "$ref": "#/backend/entities/TestAttempt" },
+          "description": "Stores a user's attempt for a course test.",
+          "params": [
+            { "name": "userId", "description": "The unique ID for the user." },
+            { "name": "attemptId", "description": "The unique ID for the test attempt." }
           ]
         }
       },
