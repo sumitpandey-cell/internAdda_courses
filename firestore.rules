@@ -80,22 +80,24 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.instructorId == request.auth.uid;
       allow update: if isSignedIn() && resource != null && resource.data.instructorId == request.auth.uid;
       allow delete: if isSignedIn() && resource != null && resource.data.instructorId == request.auth.uid;
-    }
 
-    /**
-     * @description Enforces rules for lessons within a course.
-     */
-    match /courses/{courseId}/lessons/{lessonId} {
-        allow get, list: if true;
-        allow create, update, delete: if isCourseInstructor(courseId);
-    }
+      /**
+       * @description Enforces rules for lessons within a course.
+       */
+      match /lessons/{lessonId} {
+          allow get, list: if true;
+          allow create, update, delete: if isCourseInstructor(courseId);
+      }
 
-    /**
-     * @description Enforces rules for questions within a course.
-     */
-    match /courses/{courseId}/questions/{questionId} {
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if isCourseInstructor(courseId);
+      /**
+       * @description Enforces rules for questions within a course.
+       * Students need to be able to list questions to take the test.
+       */
+      match /questions/{questionId} {
+          allow list: if isSignedIn();
+          allow get: if isSignedIn();
+          allow create, update, delete: if isCourseInstructor(courseId);
+      }
     }
 
     /**
