@@ -10,18 +10,7 @@ export function Header() {
         <span className="ml-2 text-xl font-bold font-headline">InternAdda Courses</span>
       </Link>
       <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
-        <Link
-          href="/"
-          className="text-sm font-medium hover:underline underline-offset-4"
-        >
-          Courses
-        </Link>
-        <Button asChild>
-          <Link href="/login">Login</Link>
-        </Button>
-         <Button asChild variant="secondary">
-          <Link href="/dashboard">My Dashboard</Link>
-        </Button>
+        {/* Navigation buttons removed as requested */}
       </nav>
     </header>
   );
