@@ -7,34 +7,25 @@ import { CourseCard } from '@/components/courses/CourseCard';
 import { Button } from '@/components/ui/button';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
-import type { Course, Lesson } from '@/lib/data-types';
+import type { Course } from '@/lib/data-types';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
-
-// Mock data for courses since we don't have all the fields in Firestore yet
-const courseMocks: (Course & { rating: number; lessonsCount: number, duration: number, domain: string, heroImage: string })[] = [
-    { id: '1', title: 'Essential Data Science Intern Course', description: 'Domain: Data Science & Analytics', category: 'Data Science', difficulty: 'Beginner', instructor: 'Admin', instructorId: '', tags: [], thumbnail: '/course-thumb-1.png', rating: 4.8, lessonsCount: 8, duration: 27, domain: 'Data Science & Analytics', heroImage: '/course-hero-1.png' },
-    { id: '2', title: 'Generative AI & Prompt Engineering', description: 'Domain: Artificial Intelligence', category: 'Artificial Intelligence', difficulty: 'Intermediate', instructor: 'Admin', instructorId: '', tags: [], thumbnail: '/course-thumb-2.png', rating: 4.7, lessonsCount: 4, duration: 30, domain: 'Artificial Intelligence', heroImage: '/course-hero-2.png' },
-    { id: '3', title: 'Python Essentials for All', description: 'Domain: Web Development, Python Dev', category: 'Web Development', difficulty: 'Beginner', instructor: 'Admin', instructorId: '', tags: [], thumbnail: '/course-thumb-3.png', rating: 4.8, lessonsCount: 6, duration: 28, domain: 'Web Development, Python Dev', heroImage: '/course-hero-3.png' },
-    { id: '4', title: 'Ethical Hacking Mastery: Beginner', description: 'Domain: Cybersecurity', category: 'Cybersecurity', difficulty: 'Beginner', instructor: 'Admin', instructorId: '', tags: [], thumbnail: '/course-thumb-4.png', rating: 4.8, lessonsCount: 7, duration: 35, domain: 'Cybersecurity', heroImage: '/course-hero-4.png' },
-    { id: '5', title: 'Cloud & DevOps Essentials', description: 'Domain: Cloud Computing, DevOps', category: 'Cloud & DevOps', difficulty: 'Intermediate', instructor: 'Admin', instructorId: '', tags: [], thumbnail: '/course-thumb-5.png', rating: 4.8, lessonsCount: 8, duration: 30, domain: 'Cloud Computing, DevOps', heroImage: '/course-hero-5.png' },
-    { id: '6', title: 'Product Design & UI/UX Fundamentals', description: 'Domain: UI/UX Design', category: 'UI/UX Design', difficulty: 'Beginner', instructor: 'Admin', instructorId: '', tags: [], thumbnail: '/course-thumb-6.png', rating: 4.8, lessonsCount: 8, duration: 40, domain: 'UI/UX Design', heroImage: '/course-hero-6.png' },
-];
-
 
 export default function CoursesPage() {
   const { firestore } = useFirebase();
   const [activeCategory, setActiveCategory] = useState('All Domains');
   
-  // Using mock data for now
-  const courses = courseMocks;
-  const isLoading = false;
+  const coursesQuery = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, 'courses')) : null),
+    [firestore]
+  );
+  const { data: courses, isLoading } = useCollection<Course>(coursesQuery);
 
   const categories = ['All Domains', 'Artificial Intelligence', 'Data Science', 'Web Development', 'Cybersecurity', 'Prompt Engineering', 'Cloud & DevOps'];
 
   const filteredCourses = activeCategory === 'All Domains' 
     ? courses 
-    : courses.filter(course => course.category === activeCategory);
+    : courses?.filter(course => course.category === activeCategory);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -77,7 +68,7 @@ export default function CoursesPage() {
               </div>
             ) : (
               <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                {filteredCourses.map((course) => (
+                {filteredCourses?.map((course) => (
                   <CourseCard 
                     key={course.id} 
                     course={course}
@@ -85,7 +76,7 @@ export default function CoursesPage() {
                 ))}
               </div>
             )}
-             {filteredCourses.length === 0 && !isLoading && (
+             {filteredCourses?.length === 0 && !isLoading && (
                 <div className="text-center py-12 text-muted-foreground">
                   No courses found in this category.
                 </div>

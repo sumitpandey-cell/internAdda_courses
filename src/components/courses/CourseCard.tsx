@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Star, Clock, BookOpen } from 'lucide-react';
 
 type CourseCardProps = {
-  course: Course & { rating: number; lessonsCount: number, duration: number, domain: string, heroImage: string };
+  course: Course;
 };
 
 export function CourseCard({ course }: CourseCardProps) {
@@ -21,7 +21,7 @@ export function CourseCard({ course }: CourseCardProps) {
         <Link href={`/courses/${course.id}`}>
             <div className="relative aspect-[16/9] w-full bg-slate-800 rounded-t-lg overflow-hidden">
                 <Image
-                    src={course.heroImage}
+                    src={course.thumbnail}
                     alt={course.title}
                     fill
                     className="object-cover"
@@ -34,20 +34,14 @@ export function CourseCard({ course }: CourseCardProps) {
       </CardHeader>
       <CardContent className="flex-1 p-4 flex flex-col">
         <p className="text-sm font-semibold mb-2">{course.title}</p>
-        <p className="text-xs text-muted-foreground mb-4">{course.domain}</p>
-        <div className="flex items-center gap-1 text-yellow-500 mb-4">
-            <Star className="w-4 h-4 fill-current" />
-            <span className="text-sm font-bold text-foreground">{course.rating}</span>
+        <p className="text-xs text-muted-foreground mb-4">{course.category}</p>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+            <Badge variant="outline">{course.difficulty}</Badge>
         </div>
         <div className="flex-grow"></div>
         <div className="flex justify-between items-center text-sm text-muted-foreground border-t pt-4 mt-4">
           <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4" />
-            <span>{course.duration} mins</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <BookOpen className="w-4 h-4" />
-            <span>{course.lessonsCount} Lessons</span>
+            <span>By {course.instructor}</span>
           </div>
           <Badge className="bg-green-100 text-green-800 hover:bg-green-200">FREE</Badge>
         </div>
