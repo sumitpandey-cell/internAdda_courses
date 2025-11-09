@@ -203,11 +203,11 @@ export default function LessonPage() {
                         className={cn('w-full', l.id === lessonId ? 'text-primary' : '')}
                         asChild
                       >
-                         <div className="flex items-center justify-between w-full">
-                            <Link
-                                href={`/courses/${courseId}/lesson/${l.id}`}
-                                className="flex items-center gap-3 flex-1"
-                                >
+                        <Link
+                            href={`/courses/${courseId}/lesson/${l.id}`}
+                            className="flex items-center justify-between w-full"
+                            >
+                            <div className="flex items-center gap-3 flex-1">
                                 {isLessonCompleted ? (
                                     <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
                                 ) : (
@@ -216,8 +216,8 @@ export default function LessonPage() {
                                 <span className="font-medium text-sm text-left">
                                     {l.title}
                                 </span>
-                            </Link>
-                         </div>
+                            </div>
+                        </Link>
                       </AccordionTrigger>
                       <AccordionContent className="text-sm text-muted-foreground pl-10">
                         {l.type === 'video' ? `Video` : `Text`}
