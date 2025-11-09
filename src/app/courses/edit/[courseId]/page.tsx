@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter, useParams } from 'next/navigation';
 import { useFirebase, setDocumentNonBlocking, useDoc, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, doc, setDoc, query, orderBy, where } from 'firebase/firestore';
+import { collection, doc, setDoc, query, orderBy, where, addDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -206,7 +206,7 @@ export default function EditCoursePage() {
       }
       for (let i = 0; i < data.lessons.length; i++) {
         const lesson = data.lessons[i];
-        const lessonRef = lesson.id 
+        let lessonRef = lesson.id 
             ? doc(firestore, `courses/${courseId}/lessons`, lesson.id)
             : doc(collection(firestore, `courses/${courseId}/lessons`));
         
@@ -225,7 +225,7 @@ export default function EditCoursePage() {
       }
       for (let i = 0; i < data.questions.length; i++) {
         const question = data.questions[i];
-        const questionRef = question.id
+         let questionRef = question.id
             ? doc(firestore, `courses/${courseId}/questions`, question.id)
             : doc(collection(firestore, `courses/${courseId}/questions`));
 
@@ -569,7 +569,7 @@ export default function EditCoursePage() {
                                 <FormItem>
                                     <FormLabel>Question Type</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select type"/></SelectTrigger></FormControl>
                                     <SelectContent>
                                         <SelectItem value="mcq">Multiple Choice</SelectItem>
                                         <SelectItem value="text">Text Answer</SelectItem>

@@ -145,11 +145,11 @@ export default function NewCoursePage() {
         const lesson = data.lessons[i];
         const lessonCollectionRef = collection(firestore, `courses/${courseId}/lessons`);
         
-        const lessonDoc = await addDoc(lessonCollectionRef, {
+        const lessonDocRef = await addDoc(lessonCollectionRef, {
           courseId: courseId, title: lesson.title, type: lesson.type,
           content: lesson.content, duration: lesson.duration, order: i + 1, transcript: lesson.transcript,
         });
-        await setDoc(lessonDoc, { id: lessonDoc.id }, { merge: true });
+        await setDoc(lessonDocRef, { id: lessonDocRef.id }, { merge: true });
       }
       
       // Save questions
@@ -158,12 +158,12 @@ export default function NewCoursePage() {
         const questionCollectionRef = collection(firestore, `courses/${courseId}/questions`);
         const questionOptions = (question.type === 'mcq' && question.options) ? question.options.split(',').map(o => o.trim()) : [];
         
-        const questionDoc = await addDoc(questionCollectionRef, {
+        const questionDocRef = await addDoc(questionCollectionRef, {
           courseId: courseId, text: question.text, type: question.type,
           options: questionOptions,
           correctAnswer: question.correctAnswer, order: i + 1,
         });
-        await setDoc(questionDoc, { id: questionDoc.id }, { merge: true });
+        await setDoc(questionDocRef, { id: questionDocRef.id }, { merge: true });
       }
 
 
