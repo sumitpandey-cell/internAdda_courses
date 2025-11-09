@@ -43,8 +43,8 @@ const navItems = [
   { href: '/', icon: BookOpen, label: 'Courses' },
 ];
 
-const instructorNavItems = [{ href: '/instructor', icon: GraduationCap, label: 'Instructor' }];
-const adminNavItems = [{ href: '/admin', icon: Shield, label: 'Admin Panel' }];
+const instructorNavItems:any[] = [];
+const adminNavItems:any[] = [];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
