@@ -30,7 +30,6 @@ import {
   BookOpen,
   PanelLeft,
   Trash2,
-  ChevronDown,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -203,12 +202,8 @@ export default function LessonPage() {
                   const isLessonCompleted = progress?.completedLessons?.includes(l.id);
                   return (
                     <AccordionItem key={l.id} value={`item-${index}`}>
-                      <AccordionTrigger
-                        className={cn('w-full hover:no-underline', l.id === lessonId ? 'text-primary' : '')}
-                        asChild
-                      >
-                        <Link href={`/courses/${courseId}/lesson/${l.id}`}>
-                           <div className="flex items-center justify-between w-full">
+                      <Link href={`/courses/${courseId}/lesson/${l.id}`} className="block w-full">
+                        <AccordionTrigger className={cn('w-full hover:no-underline', l.id === lessonId ? 'text-primary' : '')}>
                             <div className="flex items-center gap-3 flex-1">
                                 {isLessonCompleted ? (
                                     <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
@@ -219,10 +214,8 @@ export default function LessonPage() {
                                     {l.title}
                                 </span>
                             </div>
-                             <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
-                           </div>
-                        </Link>
-                      </AccordionTrigger>
+                        </AccordionTrigger>
+                      </Link>
                       <AccordionContent className="text-sm text-muted-foreground pl-10">
                         {l.type === 'video' ? `Video` : `Text`}
                       </AccordionContent>
