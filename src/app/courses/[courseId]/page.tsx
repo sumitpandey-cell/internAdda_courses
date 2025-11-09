@@ -39,7 +39,8 @@ export default function CoursePage() {
   const { data: progress } = useDoc<UserProgress>(progressRef);
 
   const firstLessonId = lessons?.[0]?.id;
-  const startLink = user && firstLessonId ? `/courses/${courseId}/lesson/${progress?.lastLessonId || firstLessonId}` : '/login';
+  const startDestination = `/courses/${courseId}/lesson/${progress?.lastLessonId || firstLessonId}`;
+  const startLink = user && firstLessonId ? startDestination : `/login?redirect=${startDestination}`;
 
 
   return (
@@ -112,7 +113,8 @@ export default function CoursePage() {
                 ) : (
                   lessons?.map((lesson, index) => {
                     const isCompleted = user && progress?.completedLessons?.includes(lesson.id);
-                    const lessonLink = user ? `/courses/${courseId}/lesson/${lesson.id}` : '/login';
+                    const lessonDestination = `/courses/${courseId}/lesson/${lesson.id}`;
+                    const lessonLink = user ? lessonDestination : `/login?redirect=${lessonDestination}`;
                     return (
                       <Link key={lesson.id} href={lessonLink}>
                         <div className={`flex items-center justify-between p-3 rounded-md transition-colors hover:bg-muted/50 cursor-pointer`}>
