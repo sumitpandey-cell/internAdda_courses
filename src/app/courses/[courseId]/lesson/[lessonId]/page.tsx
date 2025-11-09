@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -39,18 +40,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 export default function LessonPage() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const router = useRouter();
   const params = useParams<{ courseId: string; lessonId: string }>();
   const { courseId, lessonId } = params;
 
-  const { firestore, user } = useFirebase();
+  const { firestore, user, isUserLoading } = useFirebase();
 
-  // Redirect if not logged in
-  if (!user) {
-    router.push(`/login?redirect=/courses/${courseId}/lesson/${lessonId}`);
-    return null;
-  }
+  useEffect(() => {
+    // Redirect if not logged in after checking auth status
+    if (!isUserLoading && !user) {
+      router.push(`/login?redirect=/courses/${courseId}/lesson/${lessonId}`);
+    }
+  }, [isUserLoading, user, router, courseId, lessonId]);
+
 
   // Memoize Firestore references
   const courseRef = useMemoFirebase(
@@ -133,6 +135,7 @@ export default function LessonPage() {
     
     const noteRef = doc(collection(firestore, `users/${user.uid}/notes`));
     setDocumentNonBlocking(noteRef, {
+      id: noteRef.id,
       userId: user.uid,
       lessonId,
       content: noteContent,
@@ -203,10 +206,10 @@ export default function LessonPage() {
                         className={cn('w-full', l.id === lessonId ? 'text-primary' : '')}
                         asChild
                       >
-                        <Link
+                         <Link
                             href={`/courses/${courseId}/lesson/${l.id}`}
                             className="flex items-center justify-between w-full"
-                            >
+                          >
                             <div className="flex items-center gap-3 flex-1">
                                 {isLessonCompleted ? (
                                     <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
@@ -231,14 +234,24 @@ export default function LessonPage() {
         </ScrollArea>
   );
 
+  // While checking auth state or if user is not logged in, render loading or null.
+  if (isUserLoading || !user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <BookOpen className="h-12 w-12 text-primary animate-pulse" />
+          <p className="text-muted-foreground">Loading Lesson...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       {/* Desktop Sidebar */}
       <aside
         className={cn(
-          'bg-card flex-col h-screen overflow-hidden transition-all duration-300 hidden md:flex',
-          isSidebarOpen ? 'w-[350px]' : 'w-0'
+          'bg-card flex-col h-screen overflow-hidden transition-all duration-300 hidden md:flex w-[350px]'
         )}
       >
         <SidebarContent />
@@ -258,20 +271,10 @@ export default function LessonPage() {
                         <PanelLeft className="h-5 w-5" />
                     </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="p-0 w-[300px]">
+                <SheetContent side="left" className="p-0 w-[300px] flex flex-col">
                     <SidebarContent />
                 </SheetContent>
             </Sheet>
-
-            {/* Desktop Sidebar Toggle */}
-            <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="hidden md:flex bg-background/50 backdrop-blur-sm"
-            >
-                <PanelLeft className="h-5 w-5" />
-            </Button>
         </div>
         <ScrollArea className="flex-1">
           <div className="flex-1 p-6 md:p-8 lg:p-12 mt-12 md:mt-0">
