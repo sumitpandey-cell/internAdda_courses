@@ -32,6 +32,12 @@ const nextConfig = {
         hostname: 'media.istockphoto.com',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.ibb.co',
+        port: '',
+        pathname: '/**',
       }
     ],
   },
