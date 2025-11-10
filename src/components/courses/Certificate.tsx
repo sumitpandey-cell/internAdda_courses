@@ -5,6 +5,7 @@ import React from 'react';
 import { BookOpen, Award } from 'lucide-react';
 import type { Course } from '@/lib/data-types';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 interface CertificateProps extends React.HTMLAttributes<HTMLDivElement> {
   course: Course;
@@ -41,7 +42,7 @@ export const Certificate = React.forwardRef<HTMLDivElement, CertificateProps>(
           
           <p className="text-2xl mt-6">This certificate is proudly presented to</p>
 
-          <h2 className="text-6xl font-bold text-primary my-6 tracking-wider">
+          <h2 className="text-6xl font-bold text-primary my-6 tracking-wider" style={{ fontFamily: "'Dancing Script', cursive" }}>
             {studentName}
           </h2>
 
