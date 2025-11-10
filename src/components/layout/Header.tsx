@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -67,6 +68,10 @@ export function Header() {
             <DropdownMenuItem onClick={() => router.push('/dashboard')}>
               <LayoutDashboard className="mr-2 h-4 w-4" />
               <span>My Dashboard</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push('/profile')}>
+                <User className="mr-2 h-4 w-4" />
+                <span>Profile</span>
             </DropdownMenuItem>
              {isInstructor && (
                 <DropdownMenuItem onClick={() => router.push('/instructor')}>
