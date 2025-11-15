@@ -10,29 +10,29 @@ const footerLinks = {
         { href: "#", "text": "Become an Instructor"}
     ],
     Intern: [
-        { href: "#", text: "Find Internships" },
+        { href: "https://www.internadda.com/intern/internship", text: "Find Internships" },
         { href: "#", text: "For Companies" },
         { href: "#", text: "Success Stories" },
         { href: "#", text: "Career Coaching" }
     ],
     "Career Tools": [
-        { href: "#", text: "ATS Score Checker" },
-        { href: "#", text: "Resume Builder" },
-        { href: "#", text: "Interview Prep" },
-        { href: "#", text: "Career Letter Gen" },
+        { href: "https://check-ats.internadda.com/", text: "ATS Score Checker" },
+        { href: "https://cv-builder.internadda.com/", text: "Resume Builder" },
+        { href: "https://interview-preparation.internadda.com/", text: "Interview Prep" },
+        { href: "https://letter-builder.internadda.com/", text: "Career Letter Gen" },
         { href: "#", text: "Proxy Paraphraser" }
     ],
     InternAdda: [
-        { href: "#", text: "About Us" },
-        { href: "#", text: "Contact Us" },
+        { href: "https://www.internadda.com/about", text: "About Us" },
+        { href: "https://www.internadda.com/contact", text: "Contact Us" },
         { href: "#", text: "Terms & Conditions" },
         { href: "#", text: "Refund Policy" }
     ],
     Community: [
-        { href: "#", text: "Join Community" },
-        { href: "#", text: "Partners" },
-        { href: "#", text: "Blog" },
-        { href: "#", text: "Offline Academy" }
+        { href: "https://www.internadda.com/community/join", text: "Join Community" },
+        { href: "https://www.internadda.com/community/partners", text: "Partners" },
+        { href: "https://blog-internadda.blogspot.com/", text: "Blog" },
+        { href: "https://www.internadda.com/community/academy", text: "Offline Academy" }
     ]
 };
 

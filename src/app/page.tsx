@@ -92,7 +92,7 @@ export default function CoursesPage() {
                     Finish a course, take the Final Exam, and step directly into a paid internship.
                 </p>
                 <Button asChild size="lg" variant="secondary" className="mt-8 bg-white text-accent hover:bg-gray-200">
-                    <Link href="#">Start Your Internship Test</Link>
+                    <Link href="https://www.internadda.com/intern/internship">Start Your Internship Test</Link>
                 </Button>
             </div>
         </section>
