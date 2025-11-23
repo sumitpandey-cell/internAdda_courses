@@ -6,6 +6,7 @@ import { useForm, useFieldArray, UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, addDoc } from 'firebase/firestore';
 import dynamic from 'next/dynamic';
@@ -32,9 +33,9 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Loader2, PlusCircle, Trash2, ShieldAlert } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, ShieldAlert, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { UserProfile } from '@/lib/data-types';
+import type { UserProfile, InstructorProfile } from '@/lib/data-types';
 import { Header } from '@/components/layout/Header';
 import { ThumbnailUploader } from '@/components/thumbnail-uploader';
 import { uploadToCloudinary } from '@/lib/cloudinary-upload';
@@ -96,6 +97,7 @@ interface ContentProps {
   isLoading: boolean;
   isProfileLoading: boolean;
   userProfile: UserProfile | null;
+  instructorProfile: InstructorProfile | null;
   lessonFields: any[];
   appendLesson: (lesson: any) => void;
   removeLesson: (index: number) => void;
@@ -112,6 +114,7 @@ const Content = React.memo(function Content({
   isLoading,
   isProfileLoading,
   userProfile,
+  instructorProfile,
   lessonFields,
   appendLesson,
   removeLesson,
@@ -145,6 +148,47 @@ const Content = React.memo(function Content({
             <Button onClick={() => router.push('/')} className="mt-4">
               Back to Courses
             </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (!instructorProfile) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <Card className="mt-10 border-amber-500/20 bg-amber-500/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-amber-900">
+              <ShieldAlert />
+              Profile Required
+            </CardTitle>
+            <CardDescription className="text-amber-800">
+              Complete your instructor profile before creating courses
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-amber-900">
+              To maintain course quality and build student trust, we require all instructors to complete their profile first. This includes:
+            </p>
+            <ul className="list-disc list-inside space-y-2 text-amber-800 ml-2">
+              <li>Profile photo and bio</li>
+              <li>Expertise and specialization</li>
+              <li>Years of experience</li>
+              <li>Qualifications</li>
+              <li>Social media links (optional)</li>
+            </ul>
+            <div className="pt-4 flex gap-3">
+              <Button asChild>
+                <Link href="/instructor-profile">
+                  <User className="mr-2 h-4 w-4" />
+                  Complete Profile
+                </Link>
+              </Button>
+              <Button variant="outline" onClick={() => router.push('/instructor')}>
+                Back to Dashboard
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -759,6 +803,12 @@ export default function NewCoursePage() {
   );
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
 
+  const instructorProfileRef = useMemoFirebase(
+    () => (firestore && user ? doc(firestore, 'instructorProfiles', user.uid) : null),
+    [firestore, user]
+  );
+  const { data: instructorProfile } = useDoc<InstructorProfile>(instructorProfileRef);
+
   const form = useForm<CourseFormValues>({
     resolver: zodResolver(courseSchema),
     defaultValues: {
@@ -917,6 +967,7 @@ export default function NewCoursePage() {
           isLoading={isLoading}
           isProfileLoading={isProfileLoading}
           userProfile={userProfile}
+          instructorProfile={instructorProfile}
           lessonFields={lessonFields}
           appendLesson={appendLesson}
           removeLesson={removeLesson}

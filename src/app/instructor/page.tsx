@@ -63,8 +63,12 @@ export default function InstructorDashboardPage() {
                           {instructorProfile ? 'Edit Profile' : 'Create Profile'}
                       </Link>
                   </Button>
-                  <Button asChild>
-                      <Link href="/courses/new">
+                  <Button
+                    asChild
+                    disabled={!instructorProfile}
+                    title={!instructorProfile ? "Complete your profile before creating courses" : ""}
+                  >
+                      <Link href={instructorProfile ? "/courses/new" : "#"}>
                           <PlusCircle className="mr-2 h-4 w-4" />
                           Create New Course
                       </Link>
@@ -91,20 +95,20 @@ export default function InstructorDashboardPage() {
                   </CardContent>
               </Card>
           ) : (
-              <Card className="border-amber-500/20 bg-amber-500/5">
+              <Card className="border-red-500/20 bg-red-500/5">
                   <CardContent className="pt-6">
                       <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                              <div className="p-3 bg-amber-500/10 rounded-lg">
-                                  <User className="h-6 w-6 text-amber-600" />
+                              <div className="p-3 bg-red-500/10 rounded-lg">
+                                  <User className="h-6 w-6 text-red-600" />
                               </div>
                               <div>
-                                  <p className="font-semibold text-amber-900">Complete Your Profile</p>
-                                  <p className="text-sm text-amber-700">Add your profile information to help students learn more about you</p>
+                                  <p className="font-semibold text-red-900">Profile Required</p>
+                                  <p className="text-sm text-red-700">You must complete your instructor profile before you can create courses</p>
                               </div>
                           </div>
                           <Button asChild size="sm">
-                              <Link href="/instructor-profile">Set Up Now</Link>
+                              <Link href="/instructor-profile">Complete Now</Link>
                           </Button>
                       </div>
                   </CardContent>

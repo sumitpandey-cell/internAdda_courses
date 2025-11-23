@@ -46,15 +46,16 @@ export function Footer() {
             Transforming careers through learning, interning, and earning opportunities.
           </p>
           <div className="flex gap-4">
-            <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
-                <Linkedin className="h-5 w-5" />
-            </Button>
-             <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
+            <a href="https://www.linkedin.com/company/internadda-india/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">
+              <Linkedin className="h-5 w-5" />
+            </a>
+            <a href="https://x.com/InternaddaX?t=AGE77KcF2jbDnEGvRwrEyQ&s=08" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">
                 <Twitter className="h-5 w-5" />
-            </Button>
-             <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
+            </a>
+            <a href="https://youtube.com/@theinternadda?si=v4HgcvwODsucpxN8" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">
                 <Youtube className="h-5 w-5" />
-            </Button>
+            </a>
+
           </div>
         </div>
         

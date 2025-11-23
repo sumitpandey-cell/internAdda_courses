@@ -111,3 +111,19 @@ export type Purchase = {
   purchaseDate: any; // Firestore timestamp
   status: 'completed' | 'refunded';
 };
+
+export type SavedCourse = {
+  id: string;
+  userId: string;
+  courseId: string;
+  savedAt: any; // Firestore timestamp
+};
+
+export type Enrollment = {
+  id: string;
+  userId: string;
+  courseId: string;
+  enrolledAt: any; // Firestore timestamp
+  status: 'active' | 'completed' | 'dropped';
+};
+

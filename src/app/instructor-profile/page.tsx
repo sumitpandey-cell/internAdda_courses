@@ -361,7 +361,7 @@ export default function InstructorProfilePage() {
                   <div className="space-y-4 border-t pt-6">
                     <h3 className="text-lg font-semibold flex items-center gap-2">
                       <Star className="h-5 w-5 text-primary" />
-                      Social Links (Optional)
+                      Social Links
                     </h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

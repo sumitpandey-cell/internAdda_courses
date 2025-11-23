@@ -5,15 +5,16 @@ import { CourseProgressCard } from '@/components/dashboard/CourseProgressCard';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import type { Course, UserProgress } from '@/lib/data-types';
+import type { Course, UserProgress, SavedCourse } from '@/lib/data-types';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Award, BookCopy, CheckCircle, BookOpen, TrendingUp, Clock, Zap, Target, ArrowRight } from 'lucide-react';
+import { Award, BookCopy, CheckCircle, BookOpen, TrendingUp, Clock, Zap, Target, ArrowRight, Heart } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import Image from 'next/image';
 
 export default function DashboardPage() {
   const { firestore, user, isUserLoading } = useFirebase();
@@ -35,6 +36,25 @@ export default function DashboardPage() {
     [firestore, enrolledCourseIds.join(',')] // Use a stable string representation
   );
   const { data: enrolledCourses, isLoading: coursesLoading } = useCollection<Course>(coursesQuery);
+
+  // Fetch saved courses
+  const savedCoursesQuery = useMemoFirebase(
+    () => (firestore && user ? query(collection(firestore, 'savedCourses'), where('userId', '==', user.uid)) : null),
+    [firestore, user]
+  );
+  const { data: savedCourseRecords, isLoading: savedCoursesLoading } = useCollection<SavedCourse>(savedCoursesQuery);
+
+  const savedCourseIds = savedCourseRecords?.map(sc => sc.courseId) || [];
+
+  // Fetch saved course details
+  const savedCoursesDetailsQuery = useMemoFirebase(
+    () =>
+      firestore && savedCourseIds.length > 0
+        ? query(collection(firestore, 'courses'), where('id', 'in', savedCourseIds))
+        : null,
+    [firestore, savedCourseIds.join(',')] // Use a stable string representation
+  );
+  const { data: savedCourses, isLoading: savedCoursesDetailsLoading } = useCollection<Course>(savedCoursesDetailsQuery);
 
   const ongoingCourses = enrolledCourses?.filter(
     (course) => (userProgress?.find((p) => p.courseId === course!.id)?.percentage ?? 0) < 100
@@ -59,7 +79,7 @@ export default function DashboardPage() {
   const nextCourse = ongoingCourses.length > 0 ? ongoingCourses[0] : null;
   const nextCourseProgress = nextCourse ? userProgress?.find(p => p.courseId === nextCourse.id) : null;
   
-  const isLoading = progressLoading || coursesLoading || isUserLoading;
+  const isLoading = progressLoading || coursesLoading || isUserLoading || savedCoursesLoading || savedCoursesDetailsLoading;
   
   if (isLoading) {
     return (
@@ -258,6 +278,53 @@ export default function DashboardPage() {
                     ))}
                   </CardContent>
                 </Card>
+              )}
+            </div>
+          )}
+
+          {/* Saved Courses Section */}
+          {savedCourses && savedCourses.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold font-headline">Saved for Later</h2>
+                <Badge variant="secondary">{savedCourses.length} courses</Badge>
+              </div>
+              {isLoading ? (
+                <Card><CardContent className="p-6 text-center"><p>Loading your saved courses...</p></CardContent></Card>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {savedCourses.map((course) => (
+                    <Link key={course!.id} href={`/courses/${course!.id}`}>
+                      <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full cursor-pointer">
+                        <div className="relative aspect-video w-full overflow-hidden bg-gray-200">
+                          <Image
+                            src={course!.thumbnail || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=300&fit=crop'}
+                            alt={course!.title}
+                            fill
+                            className="object-cover hover:scale-105 transition-transform"
+                          />
+                          <Badge className="absolute top-3 left-3 bg-primary">
+                            {course!.difficulty}
+                          </Badge>
+                        </div>
+                        <CardContent className="p-4 space-y-3">
+                          <div>
+                            <h3 className="font-semibold line-clamp-2 text-gray-900">{course!.title}</h3>
+                            <p className="text-sm text-gray-600 mt-1">{course!.instructor}</p>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline" className="text-xs">{course!.category}</Badge>
+                            {course!.isFree ? (
+                              <span className="text-sm font-bold text-green-600">Free</span>
+                            ) : (
+                              <span className="text-sm font-bold text-primary">₹{course!.price}</span>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
               )}
             </div>
           )}

@@ -198,6 +198,52 @@ service cloud.firestore {
       allow delete: if isSignedIn() && isAdmin(request.auth.uid);
     }
 
+    // ==================== SAVED COURSES COLLECTION ====================
+    match /savedCourses/{savedId} {
+      // Read: Users can only read their own saved courses
+      allow read: if isSignedIn() && 
+                  resource.data.userId == request.auth.uid;
+      
+      // Create: Users can save courses for themselves
+      allow create: if isSignedIn() && 
+                    request.resource.data.userId == request.auth.uid &&
+                    request.resource.data.courseId is string;
+      
+      // Update: Users can update their own saved courses
+      allow update: if isSignedIn() && 
+                    resource.data.userId == request.auth.uid &&
+                    request.resource.data.userId == request.auth.uid;
+      
+      // Delete: Users can unsave their own courses
+      allow delete: if isSignedIn() && 
+                    resource.data.userId == request.auth.uid;
+    }
+
+    // ==================== ENROLLMENTS COLLECTION ====================
+    match /enrollments/{enrollmentId} {
+      // Read: Users can read their own enrollments; instructors can read course enrollments; admins can read all
+      allow read: if isSignedIn() && 
+                  (resource.data.userId == request.auth.uid ||
+                   get(/databases/$(database)/documents/courses/$(resource.data.courseId)).data.instructorId == request.auth.uid ||
+                   isAdmin(request.auth.uid));
+      
+      // Create: Authenticated users can enroll in courses (purchases create enrollments)
+      allow create: if isSignedIn() && 
+                    request.resource.data.userId == request.auth.uid &&
+                    request.resource.data.courseId is string &&
+                    request.resource.data.status in ['active', 'completed', 'dropped'];
+      
+      // Update: Users can update their own enrollment status; instructors/admins can update any
+      allow update: if isSignedIn() && 
+                    (resource.data.userId == request.auth.uid ||
+                     get(/databases/$(database)/documents/courses/$(resource.data.courseId)).data.instructorId == request.auth.uid ||
+                     isAdmin(request.auth.uid)) &&
+                    request.resource.data.status in ['active', 'completed', 'dropped'];
+      
+      // Delete: Only admins can delete enrollments
+      allow delete: if isAdmin(request.auth.uid);
+    }
+
     // ==================== INSTRUCTOR PROFILES COLLECTION ====================
     match /instructorProfiles/{userId} {
       // Read: ANYONE can read instructor profiles (public profiles)

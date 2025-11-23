@@ -110,7 +110,7 @@ export function Header() {
 
   return (
     <header className="px-4 md:px-6 lg:px-12 h-16 flex items-center bg-white sticky top-0 z-50 border-b border-gray-200">
-      <Link href="/" className="flex items-center gap-2">
+      <Link href="https://www.internadda.com/" className="flex items-center gap-2">
         <img src="/images/internadda_logo.png" alt="Logo" className="h-8 w-8" />
         
         <div >
@@ -121,10 +121,10 @@ export function Header() {
 
       {/* Desktop Navigation */}
       <nav className="ml-auto hidden lg:flex items-center gap-8">
-        <Link href="/" className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
+        <Link href="https://www.internadda.com/" className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
           Home
         </Link>
-        <Link href="/courses" className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
+        <Link href="/" className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
           Courses
         </Link>
         <Link href="https://www.internadda.com/intern/internship" className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
@@ -266,7 +266,7 @@ export function Header() {
                   </SheetClose>
                   <SheetClose asChild>
                     <Link href="https://www.internadda.com/contact" className="text-base font-medium text-gray-700 hover:text-primary transition-colors">
-                      Contact mn f
+                      Contact
                     </Link>
                   </SheetClose>
                   <SheetClose asChild>
