@@ -37,6 +37,11 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'share.google', // ✅ added this
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        pathname: '/**',
       }
     ],
   },

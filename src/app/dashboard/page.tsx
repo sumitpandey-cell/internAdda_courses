@@ -7,11 +7,13 @@ import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import type { Course, UserProgress } from '@/lib/data-types';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Award, BookCopy, CheckCircle, BookOpen } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Award, BookCopy, CheckCircle, BookOpen, TrendingUp, Clock, Zap, Target, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 
 export default function DashboardPage() {
   const { firestore, user, isUserLoading } = useFirebase();
@@ -46,6 +48,17 @@ export default function DashboardPage() {
   const totalInProgress = ongoingCourses.length;
   const totalXP = userProgress?.reduce((acc, p) => acc + (p.percentage * 10), 0) || 0;
   
+  // Calculate learning streaks and stats
+  const avgProgress = enrolledCourses?.length ? 
+    Math.round(enrolledCourses.reduce((sum, course) => sum + (userProgress?.find(p => p.courseId === course!.id)?.percentage ?? 0), 0) / enrolledCourses.length) 
+    : 0;
+  
+  const totalCoursesEnrolled = enrolledCourses?.length || 0;
+  
+  // Get the next course to focus on (first ongoing course)
+  const nextCourse = ongoingCourses.length > 0 ? ongoingCourses[0] : null;
+  const nextCourseProgress = nextCourse ? userProgress?.find(p => p.courseId === nextCourse.id) : null;
+  
   const isLoading = progressLoading || coursesLoading || isUserLoading;
   
   if (isLoading) {
@@ -65,69 +78,208 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-background to-muted/20">
       <Header />
       <main className="flex-1 container mx-auto px-4 md:px-6 py-8">
         <div className="space-y-8">
-          <div>
-            <h1 className="text-3xl font-bold font-headline">
+          {/* Welcome Section */}
+          <div className="space-y-2">
+            <h1 className="text-4xl font-bold font-headline bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
               Welcome back, {user?.displayName?.split(' ')[0] || 'User'}!
             </h1>
-            <p className="text-muted-foreground">Here's a summary of your learning journey.</p>
+            <p className="text-lg text-muted-foreground">Keep learning and unlock your potential</p>
           </div>
           
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <StatsCard title="Courses in Progress" value={isLoading ? '...' : totalInProgress} icon={BookCopy} />
-            <StatsCard title="Courses Completed" value={isLoading ? '...' : totalCompleted} icon={CheckCircle} />
-            <StatsCard title="Total XP Earned" value={isLoading ? '...' : Math.round(totalXP)} icon={Award} />
+          {/* Main Stats Grid */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <StatsCard 
+              title="Total Courses" 
+              value={isLoading ? '...' : totalCoursesEnrolled} 
+              icon={BookCopy}
+              subtitle="enrolled"
+            />
+            <StatsCard 
+              title="In Progress" 
+              value={isLoading ? '...' : totalInProgress} 
+              icon={Clock}
+              subtitle="courses"
+            />
+            <StatsCard 
+              title="Completed" 
+              value={isLoading ? '...' : totalCompleted} 
+              icon={CheckCircle}
+              subtitle="courses"
+            />
+            <StatsCard 
+              title="Total XP" 
+              value={isLoading ? '...' : Math.round(totalXP)} 
+              icon={Zap}
+              subtitle="earned"
+            />
           </div>
 
-          <div>
-            <h2 className="text-2xl font-bold font-headline mb-4">In Progress</h2>
-            {isLoading ? (
-                <Card><CardContent className="p-6 text-center"><p>Loading your courses...</p></CardContent></Card>
-            ) : ongoingCourses.length > 0 ? (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {ongoingCourses.map((course) => (
-                  <CourseProgressCard key={course!.id} course={course!} progress={userProgress?.find(p => p.courseId === course!.id)!} />
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <p className="text-muted-foreground">You have no courses in progress.</p>
-                  <Link href="/" className="text-primary hover:underline mt-2 inline-block">Explore Courses</Link>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-bold font-headline mb-4">Completed</h2>
-             {isLoading ? (
-                <Card><CardContent className="p-6 text-center"><p>Loading your completed courses...</p></CardContent></Card>
-            ) : completedCourses.length > 0 ? (
-              <Card>
-                <CardHeader>
-                    <CardTitle>Completed Courses</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {completedCourses.map((course) => (
-                    <div key={course!.id} className="flex items-center justify-between p-3 rounded-md hover:bg-muted/50">
-                      <p className="font-medium">{course!.title}</p>
-                      <Badge variant="secondary" className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20">Completed</Badge>
+          {/* Focus Card & Quick Stats */}
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Main Focus Card */}
+            <div className="lg:col-span-2">
+              {nextCourse && nextCourseProgress ? (
+                <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-xl">Continue Learning</CardTitle>
+                        <CardDescription>Pick up where you left off</CardDescription>
+                      </div>
+                      <Target className="h-6 w-6 text-primary/50" />
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
-            ) : (
-               <Card>
-                <CardContent className="p-6 text-center">
-                  <p className="text-muted-foreground">You haven't completed any courses yet.</p>
-                </CardContent>
-              </Card>
-            )}
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <h3 className="font-semibold text-lg mb-2">{nextCourse.title}</h3>
+                      <p className="text-sm text-muted-foreground mb-4">by {nextCourse.instructor}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="font-medium">Progress</span>
+                        <span className="text-primary font-bold">{Math.round(nextCourseProgress.percentage)}%</span>
+                      </div>
+                      <Progress value={nextCourseProgress.percentage} className="h-3" />
+                      <p className="text-xs text-muted-foreground">
+                        {nextCourseProgress.completedLessons?.length || 0} of {nextCourseProgress.totalLessons} lessons completed
+                      </p>
+                    </div>
+                    <Button asChild className="w-full mt-4" size="lg">
+                      <Link href={`/courses/${nextCourse.id}/lesson/${nextCourseProgress.lastLessonId || ''}`}>
+                        <ArrowRight className="mr-2 h-4 w-4" />
+                        Continue Course
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="border-dashed">
+                  <CardContent className="p-8 text-center">
+                    <BookOpen className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                    <p className="text-muted-foreground mb-4">No courses in progress. Start learning today!</p>
+                    <Button asChild>
+                      <Link href="/">Explore Courses</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Quick Insights */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Your Insights</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Overall Progress</span>
+                    <span className="font-bold text-primary">{avgProgress}%</span>
+                  </div>
+                  <Progress value={avgProgress} className="h-2" />
+                </div>
+                
+                <div className="border-t pt-4 space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <TrendingUp className="h-4 w-4 text-green-500" />
+                    <span className="text-muted-foreground">Learning Streak</span>
+                  </div>
+                  <p className="text-2xl font-bold">
+                    {totalCoursesEnrolled > 0 ? totalCoursesEnrolled : 'Start'} Courses
+                  </p>
+                </div>
+
+                <div className="border-t pt-4 space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Award className="h-4 w-4 text-amber-500" />
+                    <span className="text-muted-foreground">Completion Rate</span>
+                  </div>
+                  <p className="text-2xl font-bold">
+                    {totalCoursesEnrolled > 0 ? Math.round((totalCompleted / totalCoursesEnrolled) * 100) : 0}%
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
+
+          {/* In Progress Section */}
+          {totalInProgress > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold font-headline">Active Learning</h2>
+                <Badge variant="secondary">{totalInProgress} courses</Badge>
+              </div>
+              {isLoading ? (
+                <Card><CardContent className="p-6 text-center"><p>Loading your courses...</p></CardContent></Card>
+              ) : (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {ongoingCourses.map((course) => (
+                    <CourseProgressCard key={course!.id} course={course!} progress={userProgress?.find(p => p.courseId === course!.id)!} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Completed Section */}
+          {totalCompleted > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold font-headline">Achievements</h2>
+                <Badge variant="default" className="bg-green-500/10 text-green-700 dark:text-green-400">{totalCompleted} completed</Badge>
+              </div>
+              {isLoading ? (
+                <Card><CardContent className="p-6 text-center"><p>Loading completed courses...</p></CardContent></Card>
+              ) : (
+                <Card className="border-green-500/20 bg-green-500/5">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Award className="h-5 w-5 text-green-500" />
+                      Completed Courses
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {completedCourses.map((course) => (
+                      <div key={course!.id} className="flex items-center justify-between p-3 rounded-md hover:bg-green-500/10 transition-colors">
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="h-2 w-2 rounded-full bg-green-500" />
+                          <Link href={`/courses/${course!.id}`} className="font-medium hover:text-primary transition-colors">
+                            {course!.title}
+                          </Link>
+                        </div>
+                        <Badge variant="secondary" className="bg-green-500/20 text-green-700 dark:text-green-400 border-0">
+                          ✓ Completed
+                        </Badge>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Recommended Courses Section */}
+          {totalInProgress < 3 && (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold font-headline">Continue Growing</h2>
+              </div>
+              <Card className="border-dashed">
+                <CardContent className="p-8 text-center">
+                  <Zap className="h-12 w-12 text-primary/50 mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-2">Ready for your next challenge?</p>
+                  <p className="text-sm text-muted-foreground mb-4">Explore more courses to expand your skills</p>
+                  <Button asChild>
+                    <Link href="/">Discover Courses</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       </main>
     </div>

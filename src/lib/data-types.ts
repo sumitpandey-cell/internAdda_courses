@@ -7,6 +7,30 @@ export type Lesson = {
   content: string; // youtube video ID or markdown content
   transcript?: string;
   order: number;
+  section?: string; // Section name for grouping lessons
+};
+
+export type InstructorProfile = {
+  id: string;
+  userId: string;
+  name: string;
+  bio: string;
+  avatar: string;
+  expertise: string[]; // Array of skills/specializations
+  yearsOfExperience: number;
+  qualification: string;
+  specialization: string;
+  socialLinks?: {
+    twitter?: string;
+    linkedin?: string;
+    website?: string;
+    github?: string;
+  };
+  totalStudents?: number;
+  totalCourses?: number;
+  rating?: number;
+  reviews?: number;
+  createdAt?: any; // Firestore timestamp
 };
 
 export type Course = {
@@ -22,6 +46,8 @@ export type Course = {
   whatYouWillLearn: string[];
   prerequisites: string;
   thumbnail: string;
+  price: number;
+  isFree: boolean;
 };
 
 export type UserProgress = {
@@ -76,3 +102,12 @@ export type TestAttempt = {
   passed: boolean;
   submittedAt: any; // Firestore timestamp
 }
+
+export type Purchase = {
+  id: string;
+  userId: string;
+  courseId: string;
+  amount: number;
+  purchaseDate: any; // Firestore timestamp
+  status: 'completed' | 'refunded';
+};

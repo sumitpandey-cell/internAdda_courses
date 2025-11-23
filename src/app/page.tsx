@@ -1,116 +1,199 @@
-
 'use client';
 
-import { useState } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { CourseCard } from '@/components/courses/CourseCard';
+import { LogoSlider } from '@/components/home/LogoSlider';
+import { PopularCoursesCarousel } from '@/components/home/PopularCoursesCarousel';
+import { TestimonialsSection } from '@/components/home/TestimonialsSection';
+import { FeaturesSection } from '@/components/home/FeaturesSection';
 import { Button } from '@/components/ui/button';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import type { Course } from '@/lib/data-types';
-import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
+import { ArrowRight, Sparkles, GraduationCap, Briefcase } from 'lucide-react';
+import Image from 'next/image';
 
-export default function CoursesPage() {
+export default function HomePage() {
   const { firestore } = useFirebase();
-  const [activeCategory, setActiveCategory] = useState('All Domains');
-  
+
   const coursesQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'courses')) : null),
     [firestore]
   );
   const { data: courses, isLoading } = useCollection<Course>(coursesQuery);
 
-  const categories = ['All Domains', 'Artificial Intelligence', 'Data Science', 'Web Development', 'Cybersecurity', 'Prompt Engineering', 'Cloud & DevOps'];
-
-  const filteredCourses = activeCategory === 'All Domains' 
-    ? courses 
-    : courses?.filter(course => course.category === activeCategory);
-
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <main className="flex-1">
-        <section className="text-center py-16 md:py-24 px-4">
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground">Master In-Demand Skills</h1>
-          <p className="max-w-2xl mx-auto mt-4 text-muted-foreground text-lg">
-            Access our free, high-quality courses designed to prepare you for immediate placement in paid internships.
-          </p>
-          <div className="mt-8">
-            <h2 className="text-lg font-semibold text-foreground">Ready to Intern?</h2>
-            <p className="text-muted-foreground mt-2">
-              Complete any free course, pass the final exam, and unlock the path to a high-stipend internship.
-            </p>
-            <Button asChild size="lg" className="mt-4">
-              <Link href="https://www.internadda.com/intern/internship" target="_blank" rel="noopener noreferrer">View Internship Programs</Link>
-            </Button>
-          </div>
-        </section>
+        {/* Hero Section */}
+        <section className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-background to-accent/10 py-20 md:py-32 px-4">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 bg-grid-pattern opacity-5 pointer-events-none" />
 
-        <section className="py-8 px-4">
-          <div className="container mx-auto">
-            <div className="flex justify-center flex-wrap gap-2 mb-8">
-              {categories.map((category) => (
-                <Button 
-                  key={category} 
-                  variant={activeCategory === category ? 'default' : 'secondary'}
-                  className="rounded-full"
-                  onClick={() => setActiveCategory(category)}
-                >
-                  {category}
-                </Button>
-              ))}
-            </div>
+          {/* Floating Elements */}
+          <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-pulse delay-1000" />
 
-            {isLoading ? (
-              <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                {[...Array(6)].map((_, i) => <CardSkeleton key={i} />)}
-              </div>
-            ) : (
-              <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                {filteredCourses?.map((course) => (
-                  <CourseCard 
-                    key={course.id} 
-                    course={course}
-                  />
-                ))}
-              </div>
-            )}
-             {filteredCourses?.length === 0 && !isLoading && (
-                <div className="text-center py-12 text-muted-foreground">
-                  No courses found in this category.
+          <div className="container mx-auto relative z-10">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              {/* Left Content */}
+              <div className="text-center md:text-left">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full mb-6 text-sm font-semibold">
+                  <Sparkles className="w-4 h-4" />
+                  <span>Premium Courses • Paid Internships</span>
                 </div>
-              )}
+
+                <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-foreground mb-6 leading-tight">
+                  Master Skills,
+                  <br />
+                  <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+                    Launch Career
+                  </span>
+                </h1>
+
+                <p className="text-lg md:text-xl text-muted-foreground mb-8 leading-relaxed max-w-xl">
+                  Access world-class courses, earn certifications, and unlock paid internship opportunities with leading companies. Your journey to success starts here.
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+                  <Button asChild size="lg" className="group text-base">
+                    <Link href="/courses">
+                      Explore Courses
+                      <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline" className="text-base">
+                    <Link href="https://www.internadda.com/intern/internship" target="_blank">
+                      <Briefcase className="mr-2 h-5 w-5" />
+                      View Internships
+                    </Link>
+                  </Button>
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-6 mt-12 pt-8 border-t border-border/50">
+                  <div>
+                    <div className="text-3xl md:text-4xl font-bold text-foreground mb-1">10K+</div>
+                    <div className="text-sm text-muted-foreground">Students</div>
+                  </div>
+                  <div>
+                    <div className="text-3xl md:text-4xl font-bold text-foreground mb-1">50+</div>
+                    <div className="text-sm text-muted-foreground">Courses</div>
+                  </div>
+                  <div>
+                    <div className="text-3xl md:text-4xl font-bold text-foreground mb-1">85%</div>
+                    <div className="text-sm text-muted-foreground">Placement</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Image */}
+              <div className="relative hidden md:block">
+                <div className="relative aspect-square rounded-2xl overflow-hidden shadow-2xl border-4 border-primary/20">
+                  <Image
+                    src="/images/learning-success.png"
+                    alt="Students celebrating success"
+                    fill
+                    className="object-cover"
+                    priority
+                  />
+                  {/* Overlay Badge */}
+                  <div className="absolute bottom-6 left-6 right-6 bg-white/95 backdrop-blur-sm rounded-xl p-4 shadow-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                        <GraduationCap className="w-6 h-6 text-green-600" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-foreground">500+ Certificates Issued</div>
+                        <div className="text-sm text-muted-foreground">This month</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
-        <section className="bg-accent text-accent-foreground py-16 md:py-24 px-4 mt-16">
-            <div className="container mx-auto text-center">
-                <h2 className="text-3xl md:text-4xl font-bold">Ready to Prove Your Skills and Earn?</h2>
-                <p className="max-w-2xl mx-auto mt-4 text-lg">
-                    Finish a course, take the Final Exam, and step directly into a paid internship.
-                </p>
-                <Button asChild size="lg" variant="secondary" className="mt-8 bg-white text-accent hover:bg-gray-200">
-                    <Link href="https://www.internadda.com/intern/internship">Start Your Internship Test</Link>
+        {/* Logo Slider */}
+        <LogoSlider />
+
+        {/* Popular Courses Carousel */}
+        <PopularCoursesCarousel courses={courses || []} isLoading={isLoading} />
+
+        {/* Features Section */}
+        <FeaturesSection />
+
+        {/* Testimonials Section */}
+        <TestimonialsSection />
+
+        {/* Final CTA Section */}
+        <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-accent text-primary-foreground py-20 md:py-32 px-4">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 bg-grid-pattern opacity-10 pointer-events-none" />
+
+          <div className="container mx-auto text-center relative z-10">
+            <div className="max-w-3xl mx-auto">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-full mb-6 text-sm font-semibold">
+                <Sparkles className="w-4 h-4" />
+                <span>Start Your Journey Today</span>
+              </div>
+
+              <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-6">
+                Ready to Transform Your Career?
+              </h2>
+
+              <p className="text-lg md:text-xl mb-10 text-primary-foreground/90 leading-relaxed">
+                Join thousands of students who have already kickstarted their careers with Internadda.
+                Complete courses, earn certificates, and land your dream internship.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button
+                  asChild
+                  size="lg"
+                  variant="secondary"
+                  className="bg-white text-primary hover:bg-white/90 shadow-xl text-base group"
+                >
+                  <Link href="/courses">
+                    Browse All Courses
+                    <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                  </Link>
                 </Button>
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="border-white/30 text-white hover:bg-white/10 text-base"
+                >
+                  <Link href="https://www.internadda.com/about" target="_blank">
+                    Learn More About Us
+                  </Link>
+                </Button>
+              </div>
+
+              {/* Trust Indicators */}
+              <div className="mt-12 pt-8 border-t border-white/20">
+                <p className="text-sm text-primary-foreground/80 mb-4">Trusted by students joining</p>
+                <div className="flex flex-wrap justify-center gap-6 text-sm font-semibold text-white/90">
+                  <span>Google</span>
+                  <span>•</span>
+                  <span>Microsoft</span>
+                  <span>•</span>
+                  <span>Amazon</span>
+                  <span>•</span>
+                  <span>Meta</span>
+                  <span>•</span>
+                  <span>Apple</span>
+                </div>
+              </div>
             </div>
+          </div>
         </section>
       </main>
       <Footer />
-    </div>
-  );
-}
-
-function CardSkeleton() {
-  return (
-    <div className="space-y-4 p-4 border rounded-lg bg-card">
-      <Skeleton className="h-40 w-full" />
-      <div className="space-y-2">
-        <Skeleton className="h-4 w-3/4" />
-        <Skeleton className="h-4 w-1/2" />
-        <Skeleton className="h-4 w-1/4" />
-      </div>
     </div>
   );
 }

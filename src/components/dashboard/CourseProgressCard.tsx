@@ -11,7 +11,8 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { PlayCircle } from 'lucide-react';
+import { PlayCircle, BookOpen, CheckCircle2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 type CourseProgressCardProps = {
   course: Course;
@@ -19,40 +20,71 @@ type CourseProgressCardProps = {
 };
 
 export function CourseProgressCard({ course, progress }: CourseProgressCardProps) {
-  // The first lesson needs to be fetched or known. For now, we link to the course.
-  const lastLessonId = progress.lastLessonId || 'lesson1'; // Fallback needed
+  const lastLessonId = progress.lastLessonId || 'lesson1';
+  const completionPercentage = Math.round(progress.percentage);
+  const isCompleted = completionPercentage === 100;
 
   return (
-    <Card className="flex flex-col h-full overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1">
-      <CardHeader className="p-0 relative">
+    <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-background to-muted/30">
+      <CardHeader className="p-0 relative overflow-hidden group">
         <Link href={`/courses/${course.id}`}>
-          <Image
-            src={course.thumbnail}
-            alt={course.title}
-            width={600}
-            height={400}
-            className="aspect-video w-full object-cover"
-            data-ai-hint="course thumbnail"
-          />
+          <div className="relative overflow-hidden">
+            <Image
+              src={course.thumbnail}
+              alt={course.title}
+              width={600}
+              height={400}
+              className="aspect-video w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              data-ai-hint="course thumbnail"
+            />
+            {isCompleted && (
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                <CheckCircle2 className="h-12 w-12 text-green-400" />
+              </div>
+            )}
+          </div>
         </Link>
-        <div className="absolute bottom-0 w-full p-4 bg-gradient-to-t from-black/80 to-transparent">
-          <Progress value={progress.percentage} className="h-2" />
-          <p className="text-xs text-white mt-1">{Math.round(progress.percentage)}% complete</p>
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/50 to-transparent">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-white/80">{completionPercentage}% Complete</span>
+              {isCompleted && (
+                <Badge className="bg-green-500 text-white border-0">Completed</Badge>
+              )}
+            </div>
+            <Progress value={completionPercentage} className="h-2 bg-white/20" />
+          </div>
         </div>
       </CardHeader>
+
       <CardContent className="flex-1 p-4">
-        <CardTitle className="text-lg font-headline mb-1">
-          <Link href={`/courses/${course.id}`}>{course.title}</Link>
-        </CardTitle>
-        <CardDescription className="text-sm">
-          by {course.instructor}
-        </CardDescription>
+        <div className="space-y-2">
+          <CardTitle className="text-lg font-headline line-clamp-2">
+            <Link href={`/courses/${course.id}`} className="hover:text-primary transition-colors">
+              {course.title}
+            </Link>
+          </CardTitle>
+          <CardDescription className="text-sm flex items-center gap-1">
+            <span className="truncate">by {course.instructor}</span>
+          </CardDescription>
+          
+          <div className="pt-2 flex items-center gap-2 text-xs text-muted-foreground">
+            <BookOpen className="h-3.5 w-3.5" />
+            <span>{progress.completedLessons?.length || 0} of {progress.totalLessons} lessons</span>
+          </div>
+        </div>
       </CardContent>
-      <CardFooter className="p-4 pt-0">
-        <Button asChild className="w-full">
+
+      <CardFooter className="p-4 pt-0 gap-2">
+        <Button asChild variant="default" className="w-full flex-1" size="sm">
           <Link href={`/courses/${course.id}/lesson/${lastLessonId}`}>
-            <PlayCircle className="mr-2 h-4 w-4" />
-            Resume
+            <PlayCircle className="mr-2 h-3.5 w-3.5" />
+            {isCompleted ? 'Review' : 'Continue'}
+          </Link>
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/courses/${course.id}`}>
+            View
           </Link>
         </Button>
       </CardFooter>

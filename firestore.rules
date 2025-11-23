@@ -1,141 +1,219 @@
-/**
- * @fileoverview Firestore Security Rules for InternAdda Courses application.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for user-specific data
- * (progress, notes, test attempts) and allows public read access to courses
- * while restricting write access to authorized instructors.
- *
- * Data Structure:
- * - /users/{userId}: Stores user profiles. User's ID is part of the path.
- * - /courses/{courseId}: Stores course information.
- * - /courses/{courseId}/lessons/{lessonId}: Stores lessons within a course.
- * - /courses/{courseId}/questions/{questionId}: Stores test questions for a course.
- * - /users/{userId}/progress/{progressId}: Stores user progress for courses.
- * - /users/{userId}/notes/{noteId}: Stores user notes for lessons.
- * - /users/{userId}/testAttempts/{attemptId}: Stores user test attempts.
- *
- * Key Security Decisions:
- * - Users can only access their own profiles, progress, notes, and test attempts.
- * - Courses, lessons, and questions are publicly readable but only instructors
- *   can create, update, or delete them. The instructorId is denormalized
- *   onto the course document.
- * - Listing user documents (profiles) is disallowed.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * @description Checks if the request is authenticated.
-     * @returns {boolean} True if the request is authenticated, false otherwise.
-     */
+    
+    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * @description Checks if the authenticated user ID matches the provided user ID.
-     * @param {string} userId The user ID to compare against the authenticated user ID.
-     * @returns {boolean} True if the authenticated user ID matches the provided user ID, false otherwise.
-     */
+    function isAdmin(userId) {
+      return isSignedIn() && 
+             get(/databases/$(database)/documents/users/$(userId)).data.role == 'Admin';
+    }
+
+    function isInstructor(userId) {
+      return isSignedIn() && 
+             get(/databases/$(database)/documents/users/$(userId)).data.role == 'Instructor';
+    }
+
+    function isStudent(userId) {
+      return isSignedIn() && 
+             get(/databases/$(database)/documents/users/$(userId)).data.role == 'Student';
+    }
+
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
 
-    /**
-     * @description Checks if the authenticated user is the owner of an existing document.
-     * @param {string} userId The user ID of the owner.
-     * @returns {boolean} True if the user is the owner and the document exists, false otherwise.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
+    function isInstructorOrAdmin(userId) {
+      return isInstructor(userId) || isAdmin(userId);
     }
 
-    /**
-     * @description Checks if the user is the instructor for a given course.
-     * @param {string} courseId The ID of the course to check.
-     * @returns {boolean} True if the user is the instructor of the course.
-     */
-     function isCourseInstructor(courseId) {
-        return isSignedIn() && get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid;
-     }
-
-    /**
-     * @description Enforces rules for user profiles.
-     */
+    // ==================== USERS COLLECTION ====================
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
+      // Read: Any authenticated user can read any user profile (public profiles)
+      allow read: if isSignedIn();
+      
+      // Create: Users can create their own profile on signup
+      allow create: if isOwner(userId);
+      
+      // Update: Users can only update their own profile
+      allow update: if isOwner(userId);
+      
+      // Delete: Only admins can delete user accounts
+      allow delete: if isAdmin(request.auth.uid);
+
+      // ==================== USER'S PROGRESS SUBCOLLECTION ====================
+      match /progress/{courseId} {
+        // Read: Users can only read their own progress
+        allow read: if isOwner(userId);
+        
+        // Create: Users can create their own progress
+        allow create: if isOwner(userId) && 
+                      request.resource.data.userId == userId &&
+                      request.resource.data.courseId is string;
+        
+        // Update: Users can update their own progress
+        allow update: if isOwner(userId) && 
+                      resource.data.userId == userId &&
+                      request.resource.data.userId == userId;
+        
+        // Delete: Users can delete their own progress
+        allow delete: if isOwner(userId);
+      }
+
+      // ==================== USER'S NOTES SUBCOLLECTION ====================
+      match /notes/{noteId} {
+        // Read: Users can only read their own notes
+        allow read: if isOwner(userId);
+        
+        // Create: Users can create notes for their own lessons
+        allow create: if isOwner(userId) && 
+                      request.resource.data.userId == userId &&
+                      request.resource.data.lessonId is string &&
+                      request.resource.data.content is string;
+        
+        // Update: Users can only update their own notes
+        allow update: if isOwner(userId) && 
+                      resource.data.userId == userId &&
+                      request.resource.data.userId == userId;
+        
+        // Delete: Users can only delete their own notes
+        allow delete: if isOwner(userId) && 
+                      resource.data.userId == userId;
+      }
+
+      // ==================== USER'S TEST ATTEMPTS SUBCOLLECTION ====================
+      match /testAttempts/{attemptId} {
+        // Read: Users can only read their own test attempts
+        allow read: if isOwner(userId);
+        
+        // Create: Users can create test attempts for courses
+        allow create: if isOwner(userId) && 
+                      request.resource.data.userId == userId &&
+                      request.resource.data.courseId is string &&
+                      request.resource.data.score >= 0;
+        
+        // Update: Users can update their own test attempts
+        allow update: if isOwner(userId) && 
+                      resource.data.userId == userId &&
+                      request.resource.data.userId == userId;
+        
+        // Delete: Users can delete their own test attempts
+        allow delete: if isOwner(userId) && 
+                      resource.data.userId == userId;
+      }
     }
 
-    /**
-     * @description Enforces rules for courses.
-     */
+    // ==================== COURSES COLLECTION ====================
     match /courses/{courseId} {
-      allow get, list: if true;
-      allow create: if isSignedIn() && request.resource.data.instructorId == request.auth.uid;
-      allow update: if isSignedIn() && resource != null && resource.data.instructorId == request.auth.uid;
-      allow delete: if isSignedIn() && resource != null && resource.data.instructorId == request.auth.uid;
+      // Read: Any authenticated user can view all courses (public)
+      allow read: if isSignedIn();
+      
+      // Create: Only instructors and admins can create courses
+      allow create: if isSignedIn() && 
+                     isInstructorOrAdmin(request.auth.uid) &&
+                     request.resource.data.instructorId == request.auth.uid &&
+                     request.resource.data.title is string &&
+                     request.resource.data.description is string;
+      
+      // Update: Only the course instructor/admin can update their course
+      allow update: if isSignedIn() && 
+                    isInstructorOrAdmin(request.auth.uid) &&
+                    (resource.data.instructorId == request.auth.uid ||
+                     isAdmin(request.auth.uid));
+      
+      // Delete: Only the course instructor/admin can delete their course
+      allow delete: if isSignedIn() &&
+                    (resource.data.instructorId == request.auth.uid ||
+                     isAdmin(request.auth.uid));
+
+      // ==================== LESSONS SUBCOLLECTION ====================
+      match /lessons/{lessonId} {
+        // Read: Any authenticated user can read lessons from any course
+        allow read: if isSignedIn();
+        
+        // Create: Only the course instructor/admin can add lessons
+        allow create: if isSignedIn() && 
+                      isInstructorOrAdmin(request.auth.uid) &&
+                      get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid ||
+                      isAdmin(request.auth.uid);
+        
+        // Update: Only the course instructor/admin can update lessons
+        allow update: if isSignedIn() &&
+                      isInstructorOrAdmin(request.auth.uid) &&
+                      (get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid ||
+                       isAdmin(request.auth.uid));
+        
+        // Delete: Only the course instructor/admin can delete lessons
+        allow delete: if isSignedIn() &&
+                      isInstructorOrAdmin(request.auth.uid) &&
+                      (get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid ||
+                       isAdmin(request.auth.uid));
+      }
+
+      // ==================== QUESTIONS SUBCOLLECTION ====================
+      match /questions/{questionId} {
+        // Read: Any authenticated user can read questions from any course
+        allow read: if isSignedIn();
+        
+        // Create: Only the course instructor/admin can add questions
+        allow create: if isSignedIn() && 
+                      isInstructorOrAdmin(request.auth.uid) &&
+                      (get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid ||
+                       isAdmin(request.auth.uid));
+        
+        // Update: Only the course instructor/admin can update questions
+        allow update: if isSignedIn() &&
+                      isInstructorOrAdmin(request.auth.uid) &&
+                      (get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid ||
+                       isAdmin(request.auth.uid));
+        
+        // Delete: Only the course instructor/admin can delete questions
+        allow delete: if isSignedIn() &&
+                      isInstructorOrAdmin(request.auth.uid) &&
+                      (get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid ||
+                       isAdmin(request.auth.uid));
+      }
     }
 
-    /**
-     * @description Enforces rules for lessons within a course.
-     */
-    match /courses/{courseId}/lessons/{lessonId} {
-        allow get, list: if true;
-        allow create: if isSignedIn() && get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid;
-        allow update, delete: if isCourseInstructor(courseId);
+    // ==================== PURCHASES COLLECTION ====================
+    match /purchases/{purchaseId} {
+      // Read: Users can read their own purchases; admins can read all
+      allow read: if isSignedIn() && 
+                  (resource.data.userId == request.auth.uid ||
+                   isAdmin(request.auth.uid));
+      
+      // Create: Users can create purchases for themselves
+      allow create: if isSignedIn() && 
+                    request.resource.data.userId == request.auth.uid &&
+                    request.resource.data.courseId is string &&
+                    request.resource.data.amount >= 0;
+      
+      // Update: Only admins can update purchases (e.g., refund status)
+      allow update: if isSignedIn() && isAdmin(request.auth.uid);
+      
+      // Delete: Only admins can delete purchases
+      allow delete: if isSignedIn() && isAdmin(request.auth.uid);
     }
 
-    /**
-     * @description Enforces rules for questions within a course.
-     */
-    match /courses/{courseId}/questions/{questionId} {
-        allow get: if isSignedIn();
-        allow create: if isSignedIn() && get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid;
-        allow update, delete: if isCourseInstructor(courseId);
-        // Explicitly disallow list on a single document path
-        allow list: if false;
+    // ==================== INSTRUCTOR PROFILES COLLECTION ====================
+    match /instructorProfiles/{userId} {
+      // Read: Any authenticated user can read instructor profiles (public)
+      allow read: if isSignedIn();
+      
+      // Create/Update: Only the instructor can create/update their own profile
+      allow create, update: if isOwner(userId) && 
+                             isInstructorOrAdmin(userId);
+      
+      // Delete: Only admins can delete instructor profiles
+      allow delete: if isAdmin(request.auth.uid);
     }
 
-    // This rule is separate to apply `list` to the entire collection
-    match /courses/{courseId}/questions {
-        allow list: if isSignedIn();
-    }
-
-
-    /**
-     * @description Enforces rules for user progress tracking.
-     */
-    match /users/{userId}/progress/{progressId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Enforces rules for user notes.
-     */
-    match /users/{userId}/notes/{noteId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Enforces rules for user test attempts.
-     */
-    match /users/{userId}/testAttempts/{attemptId} {
-        allow get, list: if isOwner(userId);
-        allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
-        // Users cannot update or delete their past attempts.
-        allow update, delete: if false;
+    // ==================== DENY ALL OTHER PATHS ====================
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
