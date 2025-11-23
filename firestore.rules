@@ -108,8 +108,8 @@ service cloud.firestore {
 
     // ==================== COURSES COLLECTION ====================
     match /courses/{courseId} {
-      // Read: Any authenticated user can view all courses (public)
-      allow read: if isSignedIn();
+      // Read: ANYONE (public) can view all courses for browsing
+      allow read: if true;
       
       // Create: Only instructors and admins can create courses
       allow create: if isSignedIn() && 
@@ -131,14 +131,14 @@ service cloud.firestore {
 
       // ==================== LESSONS SUBCOLLECTION ====================
       match /lessons/{lessonId} {
-        // Read: Any authenticated user can read lessons from any course
-        allow read: if isSignedIn();
+        // Read: ANYONE can read lessons (they can't view full content without purchase)
+        allow read: if true;
         
         // Create: Only the course instructor/admin can add lessons
         allow create: if isSignedIn() && 
                       isInstructorOrAdmin(request.auth.uid) &&
-                      get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid ||
-                      isAdmin(request.auth.uid);
+                      (get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid ||
+                       isAdmin(request.auth.uid));
         
         // Update: Only the course instructor/admin can update lessons
         allow update: if isSignedIn() &&
@@ -155,8 +155,8 @@ service cloud.firestore {
 
       // ==================== QUESTIONS SUBCOLLECTION ====================
       match /questions/{questionId} {
-        // Read: Any authenticated user can read questions from any course
-        allow read: if isSignedIn();
+        // Read: ANYONE can read questions (answer validation happens on client/server)
+        allow read: if true;
         
         // Create: Only the course instructor/admin can add questions
         allow create: if isSignedIn() && 
@@ -200,8 +200,8 @@ service cloud.firestore {
 
     // ==================== INSTRUCTOR PROFILES COLLECTION ====================
     match /instructorProfiles/{userId} {
-      // Read: Any authenticated user can read instructor profiles (public)
-      allow read: if isSignedIn();
+      // Read: ANYONE can read instructor profiles (public profiles)
+      allow read: if true;
       
       // Create/Update: Only the instructor can create/update their own profile
       allow create, update: if isOwner(userId) && 
