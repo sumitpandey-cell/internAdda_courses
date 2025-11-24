@@ -127,3 +127,38 @@ export type Enrollment = {
   status: 'active' | 'completed' | 'dropped';
 };
 
+export type CourseReview = {
+  id: string;
+  userId: string;
+  courseId: string;
+  userName: string;
+  userAvatar: string;
+  rating: number; // 1-5
+  title: string;
+  comment: string;
+  helpful: number;
+  unhelpful: number;
+  createdAt: any; // Firestore timestamp
+  updatedAt?: any;
+};
+
+export type CourseFeedback = {
+  id: string;
+  userId: string;
+  courseId: string;
+  type: 'suggestion' | 'bug' | 'complaint' | 'praise'; // Feedback category
+  subject: string;
+  message: string;
+  createdAt: any; // Firestore timestamp
+  status: 'pending' | 'reviewed' | 'resolved';
+};
+
+export type CourseStats = {
+  id: string;
+  courseId: string;
+  totalEnrollments: number;
+  totalReviews: number;
+  averageRating: number;
+  completionRate: number;
+  lastUpdated: any; // Firestore timestamp
+};

@@ -12,6 +12,7 @@ import {
   deleteDocumentNonBlocking,
 } from '@/firebase';
 import { doc, collection, query, orderBy, where, serverTimestamp } from 'firebase/firestore';
+import { useProgressTracking } from '@/hooks/use-progress-tracking';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -58,11 +59,13 @@ export default function LessonPage() {
   const { courseId, lessonId } = params;
 
   const { firestore, user, isUserLoading } = useFirebase();
+  const { markLessonComplete } = useProgressTracking();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [noteContent, setNoteContent] = useState('');
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [theaterMode, setTheaterMode] = useState(false);
+  const [isMarkingComplete, setIsMarkingComplete] = useState(false);
 
   // Autosave timer ref
   const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -151,37 +154,42 @@ export default function LessonPage() {
     return acc;
   }, {} as Record<string, Lesson[]>);
 
-  const handleMarkComplete = () => {
-    if (!progressRef || !user || !lessons || !course || !courseId) return;
-
-    const completedLessons = progress?.completedLessons || [];
-    let newCompletedLessons = [...completedLessons];
-
-    if (isCompleted) {
-      newCompletedLessons = newCompletedLessons.filter(id => id !== lessonId);
-    } else {
-      if (!newCompletedLessons.includes(lessonId)) {
-        newCompletedLessons.push(lessonId);
-      }
+  const handleMarkComplete = async () => {
+    if (!user || !lessons || !course || !courseId || !lessonId) {
+      console.error('Missing required data:', { user: !!user, lessons: !!lessons, course: !!course, courseId, lessonId });
+      return;
     }
 
-    const percentage = Math.round((newCompletedLessons.length / lessons.length) * 100);
+    setIsMarkingComplete(true);
+    try {
+      // Use new progress tracking system
+      const { success, newPercentage } = await markLessonComplete(
+        courseId,
+        lessonId,
+        lessons.length
+      );
 
-    const newProgress: UserProgress = {
-      courseId: courseId,
-      completedLessons: newCompletedLessons,
-      totalLessons: lessons.length,
-      percentage: percentage,
-      lastLessonId: lessonId,
-      userId: user.uid,
-    };
+      console.log('Mark complete result:', { success, newPercentage, nextLesson: !!nextLesson });
 
-    setDocumentNonBlocking(progressRef, newProgress, { merge: true });
-
-    if (nextLesson) {
-      router.push(`/courses/${courseId}/lesson/${nextLesson.id}`);
-    } else if (percentage === 100 && !isCompleted) {
-      router.push(`/courses/${courseId}/test`);
+      if (success) {
+        // Navigate to next lesson or test
+        if (nextLesson) {
+          console.log('Navigating to next lesson:', nextLesson.id);
+          router.push(`/courses/${courseId}/lesson/${nextLesson.id}`);
+        } else if (newPercentage === 100) {
+          // Course completed - redirect to test or completion page
+          console.log('Course 100% complete! Redirecting to test page');
+          router.push(`/courses/${courseId}/test`);
+        } else {
+          console.log('Not 100% yet:', newPercentage);
+        }
+      } else {
+        console.error('Mark complete failed');
+      }
+    } catch (error) {
+      console.error('Error marking lesson complete:', error);
+    } finally {
+      setIsMarkingComplete(false);
     }
   };
 
@@ -662,12 +670,19 @@ export default function LessonPage() {
               <Button
                 size="lg"
                 onClick={handleMarkComplete}
+                disabled={isMarkingComplete}
                 className={cn(
                   "w-full sm:w-auto min-w-[240px] font-semibold shadow-lg transition-all hover:scale-105",
+                  isMarkingComplete && "opacity-75 cursor-wait",
                   isCompleted && !nextLesson ? "bg-green-600 hover:bg-green-700" : "bg-primary hover:bg-primary/90"
                 )}
               >
-                {nextLesson ? (
+                {isMarkingComplete ? (
+                  <>
+                    <div className="w-4 h-4 mr-2 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Processing...
+                  </>
+                ) : nextLesson ? (
                   <>
                     {isCompleted ? 'Continue to Next Lesson' : 'Mark Complete & Continue'}
                     <ChevronRight className="ml-2 h-5 w-5" />

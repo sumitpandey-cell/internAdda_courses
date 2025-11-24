@@ -53,6 +53,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Header } from '@/components/layout/Header';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { InstructorCard } from '@/components/courses/InstructorCard';
+import { ReviewForm } from '@/components/courses/ReviewForm';
+import { ReviewsDisplay } from '@/components/courses/ReviewsDisplay';
+import { FeedbackModal } from '@/components/courses/FeedbackModal';
 import {
   Accordion,
   AccordionContent,
@@ -63,6 +66,7 @@ import { useState, useEffect } from 'react';
 import { useSavedCourses } from '@/hooks/use-saved-courses';
 import { useShare } from '@/hooks/use-share';
 import { useEnrollment } from '@/hooks/use-enrollment';
+import { useCourseFeedback } from '@/hooks/use-course-feedback';
 
 export default function CoursePage() {
   const params = useParams<{ courseId: string }>();
@@ -77,6 +81,16 @@ export default function CoursePage() {
   const { share } = useShare();
   const { enrollCourse, isEnrolled, getEnrollmentCount, getActiveEnrollmentCount } = useEnrollment();
   const [enrollmentCount, setEnrollmentCount] = useState(0);
+  const { getCourseRatingStats } = useCourseFeedback();
+  const [dynamicAverageRating, setDynamicAverageRating] = useState(4.7);
+  const [dynamicTotalRatings, setDynamicTotalRatings] = useState(12847);
+  const [ratingDistribution, setRatingDistribution] = useState([
+    { stars: 5, percentage: 75 },
+    { stars: 4, percentage: 18 },
+    { stars: 3, percentage: 5 },
+    { stars: 2, percentage: 1 },
+    { stars: 1, percentage: 1 },
+  ]);
 
   const { firestore, user } = useFirebase();
 
@@ -189,6 +203,27 @@ export default function CoursePage() {
     loadEnrollmentCount();
   }, [courseId, getActiveEnrollmentCount]);
 
+  // Load rating stats
+  useEffect(() => {
+    const loadRatingStats = async () => {
+      if (courseId) {
+        const stats = await getCourseRatingStats(courseId);
+        if (stats.totalReviews > 0) {
+          setDynamicAverageRating(stats.averageRating);
+          setDynamicTotalRatings(stats.totalReviews);
+          
+          // Calculate distribution percentages
+          const distribution = [5, 4, 3, 2, 1].map(star => ({
+            stars: star,
+            percentage: Math.round((stats.ratingDistribution[star] / stats.totalReviews) * 100)
+          }));
+          setRatingDistribution(distribution);
+        }
+      }
+    };
+    loadRatingStats();
+  }, [courseId, getCourseRatingStats]);
+
   // Group lessons by their actual section field
   const groupedLessons = lessons?.reduce((acc, lesson, index) => {
     const sectionName = lesson.section || 'Other Lessons';
@@ -208,46 +243,8 @@ export default function CoursePage() {
   const totalMinutes = totalDuration % 60;
 
   // Mock data for ratings
-  const averageRating = 4.7;
-  const totalRatings = 12847;
-  const ratingDistribution = [
-    { stars: 5, percentage: 75 },
-    { stars: 4, percentage: 18 },
-    { stars: 3, percentage: 5 },
-    { stars: 2, percentage: 1 },
-    { stars: 1, percentage: 1 },
-  ];
-
-  // Mock reviews
-  const reviews = [
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      avatar: "https://i.pravatar.cc/150?img=1",
-      rating: 5,
-      date: "2 weeks ago",
-      comment: "This course exceeded my expectations! The instructor explains complex concepts in a very clear and engaging way. Highly recommended!",
-      helpful: 234
-    },
-    {
-      id: 2,
-      name: "Michael Chen",
-      avatar: "https://i.pravatar.cc/150?img=2",
-      rating: 5,
-      date: "1 month ago",
-      comment: "Best course I've taken on this platform. The practical examples and hands-on projects really helped solidify my understanding.",
-      helpful: 189
-    },
-    {
-      id: 3,
-      name: "Emily Rodriguez",
-      avatar: "https://i.pravatar.cc/150?img=3",
-      rating: 4,
-      date: "3 weeks ago",
-      comment: "Great content overall. Would love to see more advanced topics covered in future updates.",
-      helpful: 145
-    }
-  ];
+  const averageRating = dynamicAverageRating;
+  const totalRatings = dynamicTotalRatings;
 
   // Mock FAQs
   const faqs = [
@@ -877,46 +874,20 @@ export default function CoursePage() {
                 </div>
 
                 {/* Reviews */}
-                <div className="space-y-6">
-                  <h3 className="text-xl font-bold text-gray-900">Recent Reviews</h3>
-                  {reviews.map((review) => (
-                    <div key={review.id} className="p-6 bg-gray-50 rounded-xl border border-gray-200 hover:border-gray-300 transition-colors">
-                      <div className="flex items-start gap-4">
-                        <Avatar className="h-12 w-12 border-2 border-white shadow-sm">
-                          <AvatarImage src={review.avatar} />
-                          <AvatarFallback>{review.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <div>
-                              <p className="font-bold text-gray-900">{review.name}</p>
-                              <p className="text-sm text-gray-500">{review.date}</p>
-                            </div>
-                            <div className="flex">
-                              {[...Array(5)].map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className={`w-4 h-4 ${i < review.rating
-                                    ? 'fill-yellow-400 text-yellow-400'
-                                    : 'text-gray-300'
-                                    }`}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                          <p className="text-gray-700 leading-relaxed mb-3">{review.comment}</p>
-                          <button className="text-sm text-gray-600 hover:text-primary font-medium flex items-center gap-1">
-                            Helpful ({review.helpful})
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-
-                  <Button variant="outline" className="w-full">
-                    Show More Reviews
-                  </Button>
+                <div className="space-y-8">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-bold text-gray-900">Recent Reviews</h3>
+                    <FeedbackModal courseId={courseId} triggerLabel="Send Feedback" triggerVariant="outline" />
+                  </div>
+                  <ReviewsDisplay courseId={courseId} maxReviews={5} />
                 </div>
+
+                {/* Review Form - Show if user is enrolled */}
+                {user && hasAccess && (
+                  <div className="mt-8 pt-8 border-t border-gray-200">
+                    <ReviewForm courseId={courseId} onReviewSubmitted={() => window.location.reload()} />
+                  </div>
+                )}
               </section>
 
               {/* FAQ Section */}

@@ -1,7 +1,7 @@
 import { useFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, doc, deleteDoc } from 'firebase/firestore';
-import type { Enrollment } from '@/lib/data-types';
+import type { Enrollment, UserProgress } from '@/lib/data-types';
 
 export function useEnrollment() {
   const { firestore, user } = useFirebase();
@@ -242,6 +242,55 @@ export function useEnrollment() {
     }
   };
 
+  /**
+   * Get user's progress in a course
+   */
+  const getUserProgress = async (courseId: string): Promise<UserProgress | null> => {
+    if (!firestore || !user) return null;
+
+    try {
+      const progressRef = collection(firestore, 'userProgress');
+      const progressQuery = query(
+        progressRef,
+        where('userId', '==', user.uid),
+        where('courseId', '==', courseId)
+      );
+      const progressSnap = await getDocs(progressQuery);
+
+      if (!progressSnap.empty) {
+        const doc = progressSnap.docs[0];
+        return { ...doc.data() } as UserProgress;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting user progress:', error);
+      return null;
+    }
+  };
+
+  /**
+   * Check if user is eligible to review (enrolled + completed 50% or more)
+   */
+  const isEligibleToReview = async (courseId: string, minCompletionPercentage: number = 50): Promise<boolean> => {
+    if (!firestore || !user) return false;
+
+    try {
+      // Check enrollment
+      const enrolled = await isEnrolled(courseId);
+      if (!enrolled) return false;
+
+      // Check progress
+      const progress = await getUserProgress(courseId);
+      if (!progress) return false;
+
+      // Check if completed at least minCompletionPercentage
+      return progress.percentage >= minCompletionPercentage;
+    } catch (error) {
+      console.error('Error checking review eligibility:', error);
+      return false;
+    }
+  };
+
   return {
     enrollCourse,
     isEnrolled,
@@ -250,5 +299,7 @@ export function useEnrollment() {
     getEnrollmentStatus,
     updateEnrollmentStatus,
     unenrollCourse,
+    getUserProgress,
+    isEligibleToReview,
   };
 }

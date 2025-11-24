@@ -244,6 +244,69 @@ service cloud.firestore {
       allow delete: if isAdmin(request.auth.uid);
     }
 
+    // ==================== COURSE REVIEWS COLLECTION ====================
+    match /courseReviews/{reviewId} {
+      // Read: ANYONE can read reviews (public feedback)
+      allow read: if true;
+      
+      // Create: Enrolled students can submit reviews
+      allow create: if isSignedIn() && 
+                    request.resource.data.userId == request.auth.uid &&
+                    request.resource.data.courseId is string &&
+                    request.resource.data.rating >= 1 && request.resource.data.rating <= 5 &&
+                    request.resource.data.title is string &&
+                    request.resource.data.comment is string;
+      
+      // Update: Users can update their own reviews; instructors/admins can mark helpful
+      allow update: if isSignedIn() && 
+                    (resource.data.userId == request.auth.uid ||
+                     get(/databases/$(database)/documents/courses/$(resource.data.courseId)).data.instructorId == request.auth.uid ||
+                     isAdmin(request.auth.uid));
+      
+      // Delete: Users can delete their own reviews; admins can delete inappropriate reviews
+      allow delete: if isSignedIn() && 
+                    (resource.data.userId == request.auth.uid ||
+                     isAdmin(request.auth.uid));
+    }
+
+    // ==================== COURSE FEEDBACK COLLECTION ====================
+    match /courseFeedback/{feedbackId} {
+      // Read: Instructors can read feedback for their courses; admins can read all
+      allow read: if isSignedIn() && 
+                  (resource.data.userId == request.auth.uid ||
+                   get(/databases/$(database)/documents/courses/$(resource.data.courseId)).data.instructorId == request.auth.uid ||
+                   isAdmin(request.auth.uid));
+      
+      // Create: Enrolled students can submit feedback
+      allow create: if isSignedIn() && 
+                    request.resource.data.userId == request.auth.uid &&
+                    request.resource.data.courseId is string &&
+                    request.resource.data.type in ['suggestion', 'bug', 'complaint', 'praise'] &&
+                    request.resource.data.subject is string &&
+                    request.resource.data.message is string;
+      
+      // Update: Only admins can update feedback status
+      allow update: if isSignedIn() && 
+                    (isAdmin(request.auth.uid) ||
+                     get(/databases/$(database)/documents/courses/$(resource.data.courseId)).data.instructorId == request.auth.uid);
+      
+      // Delete: Only admins can delete feedback
+      allow delete: if isAdmin(request.auth.uid);
+    }
+
+    // ==================== COURSE STATS COLLECTION ====================
+    match /courseStats/{statsId} {
+      // Read: ANYONE can read stats (public analytics)
+      allow read: if true;
+      
+      // Create/Update/Delete: Only admins and course instructors can update stats
+      allow create, update: if isSignedIn() && 
+                            (get(/databases/$(database)/documents/courses/$(resource.data.courseId)).data.instructorId == request.auth.uid ||
+                             isAdmin(request.auth.uid));
+      
+      allow delete: if isAdmin(request.auth.uid);
+    }
+
     // ==================== INSTRUCTOR PROFILES COLLECTION ====================
     match /instructorProfiles/{userId} {
       // Read: ANYONE can read instructor profiles (public profiles)
@@ -255,6 +318,33 @@ service cloud.firestore {
       
       // Delete: Only admins can delete instructor profiles
       allow delete: if isAdmin(request.auth.uid);
+    }
+
+    // ==================== USER PROGRESS COLLECTION ====================
+    match /userProgress/{progressId} {
+      // Read: Users can only read their own progress
+      allow read: if isSignedIn() && 
+                  resource.data.userId == request.auth.uid;
+      
+      // Create: Authenticated users can create their own progress records
+      allow create: if isSignedIn() && 
+                    request.resource.data.userId == request.auth.uid &&
+                    request.resource.data.courseId is string &&
+                    request.resource.data.percentage >= 0 &&
+                    request.resource.data.percentage <= 100 &&
+                    request.resource.data.completedLessons is list &&
+                    request.resource.data.totalLessons is number;
+      
+      // Update: Users can update their own progress
+      allow update: if isSignedIn() && 
+                    resource.data.userId == request.auth.uid &&
+                    request.resource.data.userId == request.auth.uid &&
+                    request.resource.data.percentage >= 0 &&
+                    request.resource.data.percentage <= 100;
+      
+      // Delete: Users can delete their own progress
+      allow delete: if isSignedIn() && 
+                    resource.data.userId == request.auth.uid;
     }
 
     // ==================== DENY ALL OTHER PATHS ====================
