@@ -14,6 +14,17 @@ import { Progress } from '@/components/ui/progress';
 import { PlayCircle, BookOpen, CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
+// Helper to determine if URL is safe for next/image optimization
+// Allow all hostnames since next.config.js has wildcard patterns configured
+const isOptimizedImageDomain = (url: string): boolean => {
+  try {
+    new URL(url);
+    return true; // Allow all valid URLs
+  } catch {
+    return false;
+  }
+};
+
 type CourseProgressCardProps = {
   course: Course;
   progress: UserProgress;
@@ -29,14 +40,22 @@ export function CourseProgressCard({ course, progress }: CourseProgressCardProps
       <CardHeader className="p-0 relative overflow-hidden group">
         <Link href={`/courses/${course.id}`}>
           <div className="relative overflow-hidden">
-            <Image
-              src={course.thumbnail}
-              alt={course.title}
-              width={600}
-              height={400}
-              className="aspect-video w-full object-cover transition-transform duration-300 group-hover:scale-105"
-              data-ai-hint="course thumbnail"
-            />
+            {isOptimizedImageDomain(course.thumbnail) ? (
+              <Image
+                src={course.thumbnail}
+                alt={course.title}
+                width={600}
+                height={400}
+                className="aspect-video w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                data-ai-hint="course thumbnail"
+              />
+            ) : (
+              <img
+                src={course.thumbnail}
+                alt={course.title}
+                className="aspect-video w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+            )}
             {isCompleted && (
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                 <CheckCircle2 className="h-12 w-12 text-green-400" />

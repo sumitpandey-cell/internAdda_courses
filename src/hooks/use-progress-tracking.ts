@@ -8,7 +8,7 @@ export function useProgressTracking() {
   /**
    * Get user's progress in a course
    */
-  const getProgress = async (courseId: string): Promise<UserProgress | null> => {
+  const getProgress = async (courseId: string): Promise<(UserProgress & { id: string }) | null> => {
     if (!firestore || !user) return null;
 
     try {
@@ -21,8 +21,8 @@ export function useProgressTracking() {
       const progressSnap = await getDocs(progressQuery);
 
       if (!progressSnap.empty) {
-        const doc = progressSnap.docs[0];
-        return { ...doc.data(), id: doc.id } as UserProgress & { id: string };
+        const progressDoc = progressSnap.docs[0];
+        return { ...progressDoc.data(), id: progressDoc.id } as UserProgress & { id: string };
       }
       return null;
     } catch (error) {
@@ -38,9 +38,9 @@ export function useProgressTracking() {
     courseId: string,
     lessonId: string,
     totalLessons: number
-  ): Promise<{ success: boolean; newPercentage?: number }> => {
+  ): Promise<{ success: boolean; newPercentage: number }> => {
     if (!firestore || !user) {
-      return { success: false };
+      return { success: false, newPercentage: 0 };
     }
 
     try {
@@ -75,28 +75,17 @@ export function useProgressTracking() {
       const updatedLessons = [...(progress.completedLessons || []), lessonId];
       const newPercentage = Math.round((updatedLessons.length / totalLessons) * 100);
 
-      const progressRef = collection(firestore, 'userProgress');
-      const progressQuery = query(
-        progressRef,
-        where('userId', '==', user.uid),
-        where('courseId', '==', courseId)
-      );
-      const progressSnap = await getDocs(progressQuery);
-
-      if (!progressSnap.empty) {
-        const progressDoc = progressSnap.docs[0];
-        await updateDoc(doc(firestore, 'userProgress', progressDoc.id), {
-          completedLessons: updatedLessons,
-          percentage: newPercentage,
-          lastLessonId: lessonId,
-          updatedAt: serverTimestamp(),
-        });
-      }
+      await updateDoc(doc(firestore, 'userProgress', progress.id), {
+        completedLessons: updatedLessons,
+        percentage: newPercentage,
+        lastLessonId: lessonId,
+        updatedAt: serverTimestamp(),
+      });
 
       return { success: true, newPercentage };
     } catch (error) {
       console.error('Error marking lesson complete:', error);
-      return { success: false };
+      return { success: false, newPercentage: 0 };
     }
   };
 
@@ -107,9 +96,9 @@ export function useProgressTracking() {
     courseId: string,
     lessonId: string,
     totalLessons: number
-  ): Promise<{ success: boolean; newPercentage?: number }> => {
+  ): Promise<{ success: boolean; newPercentage: number }> => {
     if (!firestore || !user) {
-      return { success: false };
+      return { success: false, newPercentage: 0 };
     }
 
     try {
@@ -124,27 +113,16 @@ export function useProgressTracking() {
         ? Math.round((updatedLessons.length / totalLessons) * 100)
         : 0;
 
-      const progressRef = collection(firestore, 'userProgress');
-      const progressQuery = query(
-        progressRef,
-        where('userId', '==', user.uid),
-        where('courseId', '==', courseId)
-      );
-      const progressSnap = await getDocs(progressQuery);
-
-      if (!progressSnap.empty) {
-        const progressDoc = progressSnap.docs[0];
-        await updateDoc(doc(firestore, 'userProgress', progressDoc.id), {
-          completedLessons: updatedLessons,
-          percentage: newPercentage,
-          updatedAt: serverTimestamp(),
-        });
-      }
+      await updateDoc(doc(firestore, 'userProgress', progress.id), {
+        completedLessons: updatedLessons,
+        percentage: newPercentage,
+        updatedAt: serverTimestamp(),
+      });
 
       return { success: true, newPercentage };
     } catch (error) {
       console.error('Error marking lesson incomplete:', error);
-      return { success: false };
+      return { success: false, newPercentage: 0 };
     }
   };
 

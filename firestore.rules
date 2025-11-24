@@ -244,6 +244,20 @@ service cloud.firestore {
       allow delete: if isAdmin(request.auth.uid);
     }
 
+    // ==================== ENROLLMENT STATS COLLECTION (Public Read) ====================
+    match /enrollmentStats/{courseId} {
+      // Read: ANYONE can read enrollment stats (public analytics for display)
+      allow read: if true;
+      
+      // Create/Update: Only course instructors and admins can update stats
+      allow create, update: if isSignedIn() && 
+                            (get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid ||
+                             isAdmin(request.auth.uid));
+      
+      // Delete: Only admins can delete stats
+      allow delete: if isAdmin(request.auth.uid);
+    }
+
     // ==================== COURSE REVIEWS COLLECTION ====================
     match /courseReviews/{reviewId} {
       // Read: ANYONE can read reviews (public feedback)

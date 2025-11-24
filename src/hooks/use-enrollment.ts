@@ -1,6 +1,6 @@
 import { useFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, doc, deleteDoc, getDoc } from 'firebase/firestore';
 import type { Enrollment, UserProgress } from '@/lib/data-types';
 
 export function useEnrollment() {
@@ -112,6 +112,16 @@ export function useEnrollment() {
     if (!firestore) return 0;
 
     try {
+      // First try to get from public enrollmentStats collection (preferred - no permission issues)
+      const statsRef = doc(firestore, 'enrollmentStats', courseId);
+      const statsSnap = await getDoc(statsRef);
+      
+      if (statsSnap.exists() && statsSnap.data()?.activeCount !== undefined) {
+        return statsSnap.data().activeCount;
+      }
+
+      // Fallback: Try to get from enrollments collection (if user has permission)
+      // This is for cases where stats haven't been updated yet
       const enrollmentsRef = collection(firestore, 'enrollments');
       const activeQuery = query(
         enrollmentsRef,
@@ -121,6 +131,16 @@ export function useEnrollment() {
       const activeSnap = await getDocs(activeQuery);
       return activeSnap.size;
     } catch (error) {
+      // If permission denied on enrollments, try stats one more time
+      try {
+        const statsRef = doc(firestore, 'enrollmentStats', courseId);
+        const statsSnap = await getDoc(statsRef);
+        if (statsSnap.exists()) {
+          return statsSnap.data()?.activeCount || 0;
+        }
+      } catch (statsError) {
+        // Both failed, return 0
+      }
       console.error('Error getting active enrollment count:', error);
       return 0;
     }

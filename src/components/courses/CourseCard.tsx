@@ -10,11 +10,22 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Star, Clock, BookOpen, Award, TrendingUp, User, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSavedCourses } from '@/hooks/use-saved-courses';
 
 type CourseCardProps = {
   course: Course;
+};
+
+// Helper to determine if URL is safe for next/image optimization
+// Allow all hostnames since next.config.js has wildcard patterns configured
+const isOptimizedImageDomain = (url: string): boolean => {
+  try {
+    new URL(url);
+    return true; // Allow all valid URLs
+  } catch {
+    return false;
+  }
 };
 
 export function CourseCard({ course }: CourseCardProps) {
@@ -50,12 +61,20 @@ export function CourseCard({ course }: CourseCardProps) {
         <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 border-2 border-border hover:border-primary/50 bg-card group-hover:bg-accent/5">
           <CardHeader className="p-0 relative overflow-hidden">
             <div className="relative aspect-[16/9] w-full bg-gradient-to-br from-slate-800 to-slate-900 overflow-hidden">
-              <Image
-                src={course.thumbnail}
-                alt={course.title}
-                fill
-                className="object-cover transition-transform duration-500 group-hover:scale-110"
-              />
+              {isOptimizedImageDomain(course.thumbnail) ? (
+                <Image
+                  src={course.thumbnail}
+                  alt={course.title}
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+              ) : (
+                <img
+                  src={course.thumbnail}
+                  alt={course.title}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-90 group-hover:opacity-95 transition-opacity duration-300" />
 
               {/* Difficulty Badge */}

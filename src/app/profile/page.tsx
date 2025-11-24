@@ -16,6 +16,7 @@ import { Loader2, User as UserIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Header } from '@/components/layout/Header';
+import { LoadingPage } from '@/components/ui/loading-page';
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -83,11 +84,7 @@ export default function ProfilePage() {
   };
 
   if (isUserLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
+    return <LoadingPage title="My Profile" description="Loading your profile information..." showCard={true} cardCount={1} />;
   }
 
   return (
