@@ -4,6 +4,7 @@
 import { CourseProgressCard } from '@/components/dashboard/CourseProgressCard';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
+import { useOptimizedDashboard } from '@/hooks/use-optimized-data';
 import { collection, query, where } from 'firebase/firestore';
 import type { Course, UserProgress, SavedCourse } from '@/lib/data-types';
 import { Badge } from '@/components/ui/badge';
@@ -20,24 +21,14 @@ export default function DashboardPage() {
   const { firestore, user, isUserLoading } = useFirebase();
   const router = useRouter();
 
-  const progressQuery = useMemoFirebase(
-    () => (firestore && user ? query(collection(firestore, 'users', user.uid, 'progress')) : null),
-    [firestore, user]
-  );
-  const { data: userProgress, isLoading: progressLoading } = useCollection<UserProgress>(progressQuery);
+  // Use optimized dashboard hook for main data
+  const {
+    userProgress,
+    enrolledCourses,
+    isLoading: dashboardLoading
+  } = useOptimizedDashboard({ userId: user?.uid || '' });
 
-  const enrolledCourseIds = userProgress?.map(p => p.courseId) || [];
-
-  const coursesQuery = useMemoFirebase(
-    () =>
-      firestore && enrolledCourseIds.length > 0
-        ? query(collection(firestore, 'courses'), where('id', 'in', enrolledCourseIds))
-        : null,
-    [firestore, enrolledCourseIds.join(',')] // Use a stable string representation
-  );
-  const { data: enrolledCourses, isLoading: coursesLoading } = useCollection<Course>(coursesQuery);
-
-  // Fetch saved courses
+  // Keep saved courses separate for now (could be added to store later)
   const savedCoursesQuery = useMemoFirebase(
     () => (firestore && user ? query(collection(firestore, 'savedCourses'), where('userId', '==', user.uid)) : null),
     [firestore, user]
@@ -79,7 +70,7 @@ export default function DashboardPage() {
   const nextCourse = ongoingCourses.length > 0 ? ongoingCourses[0] : null;
   const nextCourseProgress = nextCourse ? userProgress?.find(p => p.courseId === nextCourse.id) : null;
   
-  const isLoading = progressLoading || coursesLoading || isUserLoading || savedCoursesLoading || savedCoursesDetailsLoading;
+  const isLoading = dashboardLoading || isUserLoading || savedCoursesLoading || savedCoursesDetailsLoading;
   
   if (isLoading) {
     return (

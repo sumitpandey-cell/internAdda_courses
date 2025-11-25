@@ -72,9 +72,7 @@ export function InstructorCard({
   return (
     <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow">
       {/* Header Background */}
-      <div className="h-24 bg-gradient-to-r from-primary/20 to-primary/5" />
-
-      <CardContent className="p-6 -mt-12 relative">
+      <CardContent className="p-6 relative">
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           {/* Avatar */}
           <div className="flex-shrink-0">

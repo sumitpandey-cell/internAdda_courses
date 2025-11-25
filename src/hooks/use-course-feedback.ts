@@ -3,10 +3,12 @@ import { useFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, doc, orderBy, limit, startAfter } from 'firebase/firestore';
 import type { CourseReview, CourseFeedback, CourseStats } from '@/lib/data-types';
+import { useCourseStore } from '@/store/course-store';
 
 export function useCourseFeedback() {
   const { firestore, user } = useFirebase();
   const { toast } = useToast();
+  const { getCourseStats: getCachedStats, setCourseStats, isDataFresh } = useCourseStore();
 
   /**
    * Submit a course review
@@ -253,6 +255,9 @@ export function useCourseFeedback() {
   /**
    * Update course stats
    */
+  /**
+   * Update course stats
+   */
   const updateCourseStats = useCallback(async (courseId: string, stats: Partial<CourseStats>) => {
     if (!firestore) return false;
 
@@ -261,16 +266,26 @@ export function useCourseFeedback() {
       const statsQuery = query(statsRef, where('courseId', '==', courseId));
       const statsSnap = await getDocs(statsQuery);
 
+      let newStatsData: CourseStats;
+
       if (statsSnap.empty) {
         // Create new stats document
-        await addDoc(statsRef, {
+        const newStats = {
           courseId,
           totalEnrollments: stats.totalEnrollments || 0,
           totalReviews: stats.totalReviews || 0,
           averageRating: stats.averageRating || 0,
           completionRate: stats.completionRate || 0,
           lastUpdated: serverTimestamp()
-        });
+        };
+        const docRef = await addDoc(statsRef, newStats);
+
+        // Prepare data for store (convert serverTimestamp to Date)
+        newStatsData = {
+          id: docRef.id,
+          ...newStats,
+          lastUpdated: new Date()
+        } as CourseStats;
       } else {
         // Update existing stats document
         const existingStatsDoc = statsSnap.docs[0];
@@ -278,18 +293,38 @@ export function useCourseFeedback() {
           ...stats,
           lastUpdated: serverTimestamp()
         });
+
+        // Prepare data for store
+        const currentData = existingStatsDoc.data();
+        newStatsData = {
+          id: existingStatsDoc.id,
+          ...currentData,
+          ...stats,
+          lastUpdated: new Date()
+        } as CourseStats;
       }
+
+      // Update Zustand cache immediately
+      setCourseStats(courseId, newStatsData);
+
       return true;
     } catch (error) {
       console.error('Error updating course stats:', error);
       return false;
     }
-  }, [firestore]);
+  }, [firestore, setCourseStats]);
 
   /**
-   * Get course stats
+   * Get course stats (with Zustand caching)
    */
   const getCourseStats = useCallback(async (courseId: string): Promise<CourseStats | null> => {
+    // Check cache first (5 minute cache)
+    const cachedStats = getCachedStats(courseId);
+    if (cachedStats && isDataFresh(`stats_${courseId}`, 5 * 60 * 1000)) {
+      return cachedStats;
+    }
+
+    // Fetch from Firestore if cache miss or stale
     if (!firestore) return null;
 
     try {
@@ -298,12 +333,18 @@ export function useCourseFeedback() {
       const statsSnap = await getDocs(statsQuery);
 
       if (statsSnap.empty) return null;
-      return statsSnap.docs[0].data() as CourseStats;
+
+      const stats = statsSnap.docs[0].data() as CourseStats;
+
+      // Update cache
+      setCourseStats(courseId, stats);
+
+      return stats;
     } catch (error) {
       console.error('Error fetching course stats:', error);
       return null;
     }
-  }, [firestore]);
+  }, [firestore, getCachedStats, setCourseStats, isDataFresh]);
 
   return {
     submitReview,

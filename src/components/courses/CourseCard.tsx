@@ -12,6 +12,7 @@ import { Star, Clock, BookOpen, Award, TrendingUp, User, Heart } from 'lucide-re
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useMemo } from 'react';
 import { useSavedCourses } from '@/hooks/use-saved-courses';
+import { useCourseStats } from '@/hooks/use-course-stats';
 
 type CourseCardProps = {
   course: Course;
@@ -31,6 +32,7 @@ const isOptimizedImageDomain = (url: string): boolean => {
 export function CourseCard({ course }: CourseCardProps) {
   const [isCourseSaved, setIsCourseSaved] = useState(false);
   const { toggleSave, isSaved } = useSavedCourses();
+  const { stats } = useCourseStats(course.id);
 
   // Check if course is saved on mount
   useEffect(() => {
@@ -140,15 +142,27 @@ export function CourseCard({ course }: CourseCardProps) {
 
             <div className="flex-grow"></div>
 
+            {/* Stats Row */}
+            <div className="flex items-center gap-4 text-xs sm:text-sm text-muted-foreground mt-2">
+              <div className="flex items-center gap-1">
+                <User className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>{stats?.totalEnrollments || 0}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Star className="h-3 w-3 sm:h-4 sm:w-4 fill-yellow-400 text-yellow-400" />
+                <span>{stats?.averageRating || 0}</span>
+                <span className="text-muted-foreground/70">({stats?.totalReviews || 0})</span>
+              </div>
+            </div>
+
             {/* Instructor Info */}
             <div className="flex items-center gap-1.5 sm:gap-2 pt-2 sm:pt-3 border-t border-border/50">
               <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
-                <User className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                <Award className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
                 <span className="text-xs sm:text-sm text-muted-foreground truncate">
                   {course.instructor}
                 </span>
               </div>
-              <Award className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
             </div>
           </CardContent>
 
@@ -161,11 +175,10 @@ export function CourseCard({ course }: CourseCardProps) {
       <div className="absolute bottom-10 sm:bottom-12 right-2 sm:right-3 z-20">
         <Button
           size="icon"
-          className={`rounded-full transition-all h-8 w-8 sm:h-10 sm:w-10 p-1.5 sm:p-2 ${
-            isCourseSaved
-              ? 'bg-red-500 hover:bg-red-600 text-white'
-              : 'bg-blue-300 hover:bg-blue-700 text-white backdrop-blur-sm border border-white/30'
-          }`}
+          className={`rounded-full transition-all h-8 w-8 sm:h-10 sm:w-10 p-1.5 sm:p-2 ${isCourseSaved
+            ? 'bg-red-500 hover:bg-red-600 text-white'
+            : 'bg-blue-300 hover:bg-blue-700 text-white backdrop-blur-sm border border-white/30'
+            }`}
           onClick={handleSaveClick}
         >
           <Heart

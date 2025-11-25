@@ -2,9 +2,9 @@
 export type Lesson = {
   id: string;
   title: string;
-  type: 'video' | 'text';
+  type: 'video'; // Only video type now
   duration?: number; // in minutes, now optional
-  content: string; // youtube video ID or markdown content
+  content?: string; // youtube video ID, now optional
   transcript?: string;
   order: number;
   section?: string; // Section name for grouping lessons

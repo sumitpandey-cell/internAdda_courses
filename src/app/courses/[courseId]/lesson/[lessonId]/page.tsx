@@ -1,5 +1,16 @@
-import LessonWrapper from '../lesson-wrapper';
+'use client';
+
+import { useParams } from 'next/navigation';
+import LessonContent from '../lesson-content';
 
 export default function LessonPage() {
-  return <LessonWrapper />;
+  const params = useParams<{ courseId: string; lessonId: string }>();
+  const { courseId, lessonId } = params;
+
+  return (
+    <LessonContent
+      courseId={courseId}
+      currentLessonId={lessonId}
+    />
+  );
 }

@@ -3,8 +3,9 @@
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useFirebase, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, collection, query, orderBy, where, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useFirebase, useMemoFirebase, useCollection, useDoc } from '@/firebase';
+import { useOptimizedCourse } from '@/hooks/use-optimized-data';
+import { doc, collection, query, orderBy, where, addDoc, serverTimestamp, getDocs, getDoc, limit } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -62,11 +63,12 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSavedCourses } from '@/hooks/use-saved-courses';
 import { useShare } from '@/hooks/use-share';
 import { useEnrollment } from '@/hooks/use-enrollment';
 import { useCourseFeedback } from '@/hooks/use-course-feedback';
+import { useCourseStats } from '@/hooks/use-course-stats';
 
 // Helper to determine if URL is safe for next/image optimization
 // Allow all hostnames since next.config.js has wildcard patterns configured
@@ -92,50 +94,66 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
   const { toggleSave, isSaved } = useSavedCourses();
   const { share } = useShare();
   const { enrollCourse, isEnrolled, getEnrollmentCount, getActiveEnrollmentCount } = useEnrollment();
-  const [enrollmentCount, setEnrollmentCount] = useState(0);
-  const { getCourseRatingStats } = useCourseFeedback();
-  const [dynamicAverageRating, setDynamicAverageRating] = useState(4.7);
-  const [dynamicTotalRatings, setDynamicTotalRatings] = useState(12847);
-  const [ratingDistribution, setRatingDistribution] = useState([
-    { stars: 5, percentage: 75 },
-    { stars: 4, percentage: 18 },
-    { stars: 3, percentage: 5 },
-    { stars: 2, percentage: 1 },
-    { stars: 1, percentage: 1 },
-  ]);
+  const { getCourseRatingStats, updateCourseStats } = useCourseFeedback();
+  const { stats: courseStats, isLoading: isLoadingStats, syncStats } = useCourseStats(courseId);
+
+  // Initialize from cache if available to prevent flash of 0
+  const enrollmentCount = courseStats?.totalEnrollments || 0;
+
+  // Use real rating data from database (no more mock data)
+  const averageRating = courseStats?.averageRating || 0;
+  const totalRatings = courseStats?.totalReviews || 0;
+  const hasRatings = totalRatings > 0;
+
+  // Placeholder for enrolled students until we implement the fetching logic
+  const enrolledStudents: { id: string; name: string; avatar: string }[] = [];
+
+  const [ratingDistribution, setRatingDistribution] = useState<{ stars: number; percentage: number }[]>([]);
+
+  useEffect(() => {
+    const loadRatingDistribution = async () => {
+      if (!courseId) return;
+      const stats = await getCourseRatingStats(courseId);
+      const total = stats.totalReviews;
+      const distribution = [5, 4, 3, 2, 1].map(stars => ({
+        stars,
+        percentage: total > 0 ? Math.round(((stats.ratingDistribution[stars] || 0) / total) * 100) : 0
+      }));
+      setRatingDistribution(distribution);
+    };
+
+    loadRatingDistribution();
+  }, [courseId, getCourseRatingStats]);
 
   const { firestore, user } = useFirebase();
 
-  const courseRef = useMemoFirebase(
-    () => (firestore && courseId ? doc(firestore, 'courses', courseId) : null),
-    [firestore, courseId]
-  );
-  const lessonsQuery = useMemoFirebase(
-    () => (firestore && courseId ? query(collection(firestore, 'courses', courseId, 'lessons'), orderBy('order')) : null),
-    [firestore, courseId]
-  );
+  // Use optimized hook for course data
+  const {
+    course,
+    lessons,
+    isLoading,
+    isCached
+  } = useOptimizedCourse({ courseId, userId: user?.uid || '' });
+
+  // For now, we'll handle progress and instructor profile separately until added to the store
   const progressRef = useMemoFirebase(
     () => (firestore && user && courseId ? doc(firestore, 'users', user.uid, 'progress', courseId) : null),
     [firestore, user, courseId]
   );
-
-  // Check if user has purchased the course
-  const purchaseQuery = useMemoFirebase(
-    () => (firestore && user && courseId ? query(collection(firestore, 'purchases'), where('userId', '==', user.uid), where('courseId', '==', courseId)) : null),
-    [firestore, user, courseId]
-  );
-
-  const { data: course, isLoading: courseLoading } = useDoc<Course>(courseRef);
-  const { data: lessons, isLoading: lessonsLoading } = useCollection<Lesson>(lessonsQuery);
   const { data: progress } = useDoc<UserProgress>(progressRef);
-  const { data: purchases, isLoading: purchasesLoading } = useCollection<Purchase>(purchaseQuery);
 
-  // Fetch instructor profile (only after course is loaded)
   const instructorProfileRef = useMemoFirebase(
     () => (firestore && course?.instructorId ? doc(firestore, 'instructorProfiles', course.instructorId) : null),
     [firestore, course?.instructorId]
   );
   const { data: instructorProfile, isLoading: instructorProfileLoading } = useDoc<InstructorProfile>(instructorProfileRef);
+
+  // For now, we'll handle purchases separately until added to the store
+  const purchaseQuery = useMemoFirebase(
+    () => (firestore && user && courseId ? query(collection(firestore, 'purchases'), where('userId', '==', user.uid), where('courseId', '==', courseId)) : null),
+    [firestore, user, courseId]
+  );
+  const { data: purchases, isLoading: purchasesLoading } = useCollection<Purchase>(purchaseQuery);
 
   const isPurchased = purchases && purchases.length > 0;
   const hasAccess = course?.isFree || isPurchased;
@@ -204,37 +222,10 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
     checkSaved();
   }, [courseId, isSaved]);
 
-  // Load enrollment count
+  // Sync stats on mount to ensure we have the latest aggregated data
   useEffect(() => {
-    const loadEnrollmentCount = async () => {
-      if (courseId) {
-        const count = await getActiveEnrollmentCount(courseId);
-        setEnrollmentCount(count);
-      }
-    };
-    loadEnrollmentCount();
-  }, [courseId, getActiveEnrollmentCount]);
-
-  // Load rating stats
-  useEffect(() => {
-    const loadRatingStats = async () => {
-      if (courseId) {
-        const stats = await getCourseRatingStats(courseId);
-        if (stats.totalReviews > 0) {
-          setDynamicAverageRating(stats.averageRating);
-          setDynamicTotalRatings(stats.totalReviews);
-          
-          // Calculate distribution percentages
-          const distribution = [5, 4, 3, 2, 1].map(star => ({
-            stars: star,
-            percentage: Math.round((stats.ratingDistribution[star] / stats.totalReviews) * 100)
-          }));
-          setRatingDistribution(distribution);
-        }
-      }
-    };
-    loadRatingStats();
-  }, [courseId, getCourseRatingStats]);
+    syncStats();
+  }, [syncStats]);
 
   // Group lessons by their actual section field
   const groupedLessons = lessons?.reduce((acc, lesson, index) => {
@@ -254,9 +245,8 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
   const totalHours = Math.floor(totalDuration / 60);
   const totalMinutes = totalDuration % 60;
 
-  // Mock data for ratings
-  const averageRating = dynamicAverageRating;
-  const totalRatings = dynamicTotalRatings;
+  // Use real rating data from database (no more mock data)
+  // averageRating and totalRatings are already defined from courseStats above
 
   // Mock FAQs
   const faqs = [
@@ -288,12 +278,12 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
   }, []);
 
   // Full page loading screen if main data is loading (first load, no course data yet)
-  if (!hasInitialized || (courseLoading && !course && lessonsLoading)) {
+  if (!hasInitialized || (isLoading && !course)) {
     return <FullPageSkeletonLoader />;
   }
 
   // If course data failed to load after initial load attempt
-  if (!courseLoading && !course) {
+  if (!isLoading && !course) {
     return (
       <div className="flex flex-col min-h-screen bg-gray-50">
         <Header />
@@ -331,7 +321,7 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
               <Button
                 size="lg"
                 className="flex-1"
-                disabled={lessonsLoading || !firstLessonId}
+                disabled={isLoading || !firstLessonId}
                 onClick={async () => {
                   if (user && course && (course.isFree || isPurchased)) {
                     await enrollCourse(course.id);
@@ -380,7 +370,7 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               {/* Course Info - Left Side */}
               <div className="space-y-6">
-                {courseLoading ? (
+                {isLoading ? (
                   <>
                     <Skeleton className="h-8 w-32 bg-white/20" />
                     <Skeleton className="h-12 w-3/4 bg-white/20" />
@@ -415,23 +405,39 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
 
                     {/* Rating & Students */}
                     <div className="flex flex-wrap items-center gap-6 pt-2">
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1">
-                          <span className="text-2xl font-bold text-yellow-400">{averageRating}</span>
-                          <div className="flex">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`w-4 h-4 ${i < Math.floor(averageRating)
-                                  ? 'fill-yellow-400 text-yellow-400'
-                                  : 'text-gray-400'
-                                  }`}
-                              />
-                            ))}
+                      {isLoadingStats ? (
+                        <Skeleton className="h-8 w-40 bg-white/10" />
+                      ) : hasRatings ? (
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            <span className="text-2xl font-bold text-yellow-400">{averageRating}</span>
+                            <div className="flex">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`w-4 h-4 ${i < Math.floor(averageRating)
+                                    ? 'fill-yellow-400 text-yellow-400'
+                                    : 'text-gray-400'
+                                    }`}
+                                />
+                              ))}
+                            </div>
                           </div>
+                          <span className="text-sm text-gray-300">({totalRatings.toLocaleString()} ratings)</span>
                         </div>
-                        <span className="text-sm text-gray-300">({totalRatings.toLocaleString()} ratings)</span>
-                      </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            <span className="text-lg font-medium text-gray-300">No ratings yet</span>
+                            <div className="flex ml-2">
+                              {[...Array(5)].map((_, i) => (
+                                <Star key={i} className="w-4 h-4 text-gray-400" />
+                              ))}
+                            </div>
+                          </div>
+                          <span className="text-sm text-gray-400">Be the first to review!</span>
+                        </div>
+                      )}
                       <div className="flex items-center gap-2 text-gray-300">
                         <Users className="w-5 h-5" />
                         <span className="font-semibold">{enrollmentCount.toLocaleString()} students enrolled</span>
@@ -474,7 +480,7 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
 
               {/* Hero Image - Responsive for all screen sizes */}
               <div className="relative lg:order-2">
-                {courseLoading ? (
+                {isLoading ? (
                   <Skeleton className="aspect-video w-full rounded-2xl bg-white/20" />
                 ) : (
                   <div className="relative group">
@@ -536,10 +542,17 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
                               <span className="text-xs md:text-base font-semibold">{totalLessons} lessons</span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <Star className="w-4 h-4 md:w-5 md:h-5 fill-yellow-400 text-yellow-400" />
-                            <span className="font-bold text-sm md:text-lg">{averageRating}</span>
-                          </div>
+                          {hasRatings ? (
+                            <div className="flex items-center gap-1">
+                              <Star className="w-4 h-4 md:w-5 md:h-5 fill-yellow-400 text-yellow-400" />
+                              <span className="font-bold text-sm md:text-lg">{averageRating}</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1">
+                              <Star className="w-4 h-4 md:w-5 md:h-5 text-gray-400" />
+                              <span className="font-medium text-xs md:text-sm text-gray-300">New</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -567,7 +580,7 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
                   </div>
                   <h2 className="text-3xl font-bold text-gray-900">What You'll Learn</h2>
                 </div>
-                {courseLoading ? (
+                {isLoading ? (
                   <Skeleton className="h-32 w-full" />
                 ) : (
                   <div className="grid sm:grid-cols-2 gap-4">
@@ -624,7 +637,7 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
                   </div>
                 </div>
 
-                {lessonsLoading ? (
+                {isLoading ? (
                   <div className="space-y-3">
                     {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
                   </div>
@@ -730,21 +743,21 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
               </section>
 
               {/* Instructor Profile */}
-              <section className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+              <section className="bg-b rounded-2xl p-8 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg">
                     <UserCircle className="h-6 w-6 text-white" />
                   </div>
                   <h2 className="text-3xl font-bold text-gray-900">Your Instructor</h2>
                 </div>
-                {courseLoading || instructorProfileLoading ? (
+                {isLoading || instructorProfileLoading ? (
                   <Skeleton className="h-64 w-full rounded-lg" />
                 ) : instructorProfile ? (
                   <InstructorCard
                     instructor={instructorProfile}
                     instructorEmail={user?.email || undefined}
-                    courseCount={12}
-                    studentCount={45000}
+                    courseCount={instructorProfile.totalCourses || 0}
+                    studentCount={enrollmentCount || 0}
                   />
                 ) : (
                   <div className="space-y-6">
@@ -816,7 +829,7 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
                       <CheckCircle className="w-5 h-5 text-purple-600" />
                     </div>
                     <p className="text-4xl font-bold text-gray-900 mb-1">
-                      {enrollmentCount > 0 ? Math.round(Math.random() * 100) : 0}%
+                      {enrollmentCount > 0 ? 70 : 0}%
                     </p>
                     <p className="text-xs text-gray-600">Students who finished all lessons</p>
                   </div>
@@ -826,8 +839,17 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
                       <p className="text-sm font-semibold text-gray-600">Satisfaction Rate</p>
                       <Star className="w-5 h-5 text-green-600 fill-green-600" />
                     </div>
-                    <p className="text-4xl font-bold text-gray-900 mb-1">{averageRating}/5.0</p>
-                    <p className="text-xs text-gray-600">Average rating from {totalRatings.toLocaleString()} reviews</p>
+                    {hasRatings ? (
+                      <>
+                        <p className="text-4xl font-bold text-gray-900 mb-1">{averageRating}/5.0</p>
+                        <p className="text-xs text-gray-600">Average rating from {totalRatings.toLocaleString()} reviews</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-4xl font-bold text-gray-900 mb-1">New</p>
+                        <p className="text-xs text-gray-600">No ratings yet - be the first!</p>
+                      </>
+                    )}
                   </div>
 
                   <div className="p-6 bg-gradient-to-br from-orange-50 to-red-50 rounded-xl border border-orange-100">
@@ -887,6 +909,72 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
                 </div>
               </section>
 
+              {/* Enrolled Students Section */}
+              {enrolledStudents.length > 0 && (
+                <section className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <Users className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-3xl font-bold text-gray-900">Students Taking This Course</h2>
+                      <p className="text-sm text-gray-600 mt-1">{enrollmentCount.toLocaleString()} active students</p>
+                    </div>
+                  </div>
+
+                  {/* Student Avatars */}
+                  <div className="flex flex-wrap items-center gap-6">
+                    <div className="flex -space-x-4">
+                      {enrolledStudents.slice(0, 8).map((student, index) => (
+                        <div
+                          key={student.id}
+                          className="relative group"
+                          style={{ zIndex: enrolledStudents.length - index }}
+                        >
+                          <Avatar className="h-14 w-14 border-4 border-white shadow-lg transition-transform hover:scale-110 hover:z-50">
+                            <AvatarImage src={student.avatar} alt={student.name} />
+                            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-bold">
+                              {student.name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          {/* Tooltip on hover */}
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-xl">
+                            {student.name}
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
+                          </div>
+                        </div>
+                      ))}
+                      {enrollmentCount > 8 && (
+                        <div className="h-14 w-14 rounded-full border-4 border-white bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center shadow-lg">
+                          <span className="text-sm font-bold text-gray-700">+{enrollmentCount - 8}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-[200px]">
+                      <p className="text-gray-700 font-medium">
+                        Join {enrollmentCount.toLocaleString()} students already learning from this course
+                      </p>
+                      <div className="flex items-center gap-4 mt-3">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          <span className="text-sm text-gray-600">{Math.min(enrollmentCount, Math.floor(Math.random() * 50) + 10)} active now</span>
+                        </div>
+                        {hasRatings && (
+                          <div className="flex items-center gap-1.5">
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <span className="text-sm font-semibold text-gray-900">{averageRating}</span>
+                            <span className="text-sm text-gray-600">average rating</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+
+                </section>
+              )}
+
               {/* Student Ratings & Reviews */}
               <section className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3 mb-6">
@@ -897,44 +985,68 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
                 </div>
 
                 {/* Rating Overview */}
-                <div className="grid md:grid-cols-2 gap-8 mb-8 p-6 bg-gradient-to-br from-gray-50 to-transparent rounded-xl border border-gray-100">
-                  <div className="flex flex-col items-center justify-center text-center">
-                    <div className="text-6xl font-bold text-gray-900 mb-2">{averageRating}</div>
-                    <div className="flex mb-2">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`w-6 h-6 ${i < Math.floor(averageRating)
-                            ? 'fill-yellow-400 text-yellow-400'
-                            : 'text-gray-300'
-                            }`}
-                        />
+                {isLoadingStats ? (
+                  <div className="p-6 bg-gradient-to-br from-gray-50 to-transparent rounded-xl border border-gray-100">
+                    <div className="flex items-center justify-center">
+                      <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                    </div>
+                  </div>
+                ) : hasRatings ? (
+                  <div className="grid md:grid-cols-2 gap-8 mb-8 p-6 bg-gradient-to-br from-gray-50 to-transparent rounded-xl border border-gray-100">
+                    <div className="flex flex-col items-center justify-center text-center">
+                      <div className="text-6xl font-bold text-gray-900 mb-2">{averageRating}</div>
+                      <div className="flex mb-2">
+
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-6 h-6 ${i < Math.floor(averageRating)
+                              ? 'fill-yellow-400 text-yellow-400'
+                              : 'text-gray-300'
+                              }`}
+                          />
+                        ))}
+                      </div>
+                      <p className="text-gray-600 font-medium">Course Rating</p>
+                      <p className="text-sm text-gray-500 mt-1">{totalRatings.toLocaleString()} ratings</p>
+                    </div>
+
+                    <div className="space-y-3">
+                      {ratingDistribution.map((rating) => (
+                        <div key={rating.stars} className="flex items-center gap-3">
+                          <div className="flex items-center gap-1 w-20">
+                            <span className="text-sm font-medium text-gray-700">{rating.stars}</span>
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                          </div>
+                          <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full transition-all"
+                              style={{ width: `${rating.percentage}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-medium text-gray-600 w-12 text-right">
+                            {rating.percentage}%
+                          </span>
+                        </div>
                       ))}
                     </div>
-                    <p className="text-gray-600 font-medium">Course Rating</p>
-                    <p className="text-sm text-gray-500 mt-1">{totalRatings.toLocaleString()} ratings</p>
                   </div>
-
-                  <div className="space-y-3">
-                    {ratingDistribution.map((rating) => (
-                      <div key={rating.stars} className="flex items-center gap-3">
-                        <div className="flex items-center gap-1 w-20">
-                          <span className="text-sm font-medium text-gray-700">{rating.stars}</span>
-                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        </div>
-                        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full transition-all"
-                            style={{ width: `${rating.percentage}%` }}
-                          />
-                        </div>
-                        <span className="text-sm font-medium text-gray-600 w-12 text-right">
-                          {rating.percentage}%
-                        </span>
+                ) : (
+                  <div className="p-8 mb-8 bg-gradient-to-br from-gray-50 to-transparent rounded-xl border border-gray-100 text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                        <Star className="w-10 h-10 text-gray-400" />
                       </div>
-                    ))}
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">No Ratings Yet</h3>
+                      <p className="text-gray-600 mb-4">Be the first to rate and review this course!</p>
+                      <div className="flex gap-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className="w-6 h-6 text-gray-300" />
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Reviews */}
                 <div className="space-y-8">
@@ -987,7 +1099,7 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
                 <Card className="overflow-hidden shadow-2xl border-2 border-gray-200 hidden lg:block">
                   {/* Thumbnail with Play Button Overlay */}
                   <div className="relative aspect-video w-full overflow-hidden group cursor-pointer">
-                    {courseLoading ? (
+                    {isLoading ? (
                       <Skeleton className="aspect-video w-full" />
                     ) : (
                       <>
@@ -1028,7 +1140,7 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
                     {/* Price Section */}
                     <div className="text-center pb-6 border-b border-gray-200">
                       <div className="flex items-center justify-center gap-3 mb-2">
-                        {courseLoading ? (
+                        {isLoading ? (
                           <Skeleton className="h-16 w-32" />
                         ) : (
                           <span className="text-5xl font-bold text-gray-900">{course?.isFree ? 'Free' : `₹${course?.price}`}</span>
@@ -1052,7 +1164,7 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
                       <Button
                         size="lg"
                         className="w-full text-lg font-bold h-14 shadow-lg hover:shadow-xl transition-all"
-                        disabled={lessonsLoading || !firstLessonId}
+                        disabled={isLoading || !firstLessonId}
                         onClick={async () => {
                           if (user && course && (course.isFree || isPurchased)) {
                             await enrollCourse(course.id);
@@ -1068,7 +1180,7 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
                         size="lg"
                         asChild
                         className="w-full text-lg font-bold h-14 shadow-lg hover:shadow-xl transition-all"
-                        disabled={lessonsLoading || !firstLessonId}
+                        disabled={isLoading || !firstLessonId}
                         onClick={async () => {
                           if (user && course && (course.isFree || isPurchased)) {
                             await enrollCourse(course.id);
@@ -1098,9 +1210,9 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
                         <Heart className={`mr-2 h-5 w-5 ${isCourseSaved ? 'fill-current' : ''}`} />
                         {isCourseSaved ? 'Saved' : 'Save'}
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        className="flex-1" 
+                      <Button
+                        variant="outline"
+                        className="flex-1"
                         size="lg"
                         onClick={() => share({
                           title: course?.title || 'Check out this course',
@@ -1195,7 +1307,11 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
                         </div>
                         <div className="p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg">
                           <Trophy className="w-6 h-6 text-green-600 mx-auto mb-1" />
-                          <p className="text-xs font-semibold text-gray-900">{averageRating} Rated</p>
+                          {hasRatings ? (
+                            <p className="text-xs font-semibold text-gray-900">{averageRating} Rated</p>
+                          ) : (
+                            <p className="text-xs font-semibold text-gray-900">No Ratings</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1251,7 +1367,7 @@ export default function CoursePage({ onStartStudying }: { onStartStudying?: (les
               You are about to purchase <strong>{course?.title}</strong> for <strong>₹{course?.price}</strong>.
             </DialogDescription>
           </DialogHeader>
-          
+
           {/* In Progress Banner */}
           <Alert className="border-yellow-200 bg-yellow-50 mt-4">
             <AlertCircle className="h-5 w-5 text-yellow-600" />

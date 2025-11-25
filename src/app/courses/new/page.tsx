@@ -49,8 +49,8 @@ import { Switch } from '@/components/ui/switch';
 
 const lessonSchema = z.object({
   title: z.string().min(1, 'Title is required.'),
-  type: z.enum(['video', 'text']),
-  content: z.string().min(1, 'Content is required. For video lessons, please provide the YouTube Video ID.'),
+  type: z.enum(['video']).default('video'),
+  content: z.string().optional(), // YouTube Video ID is now optional
   duration: z.coerce.number().min(1, 'Duration must be at least 1 minute.'),
   transcript: z.string().optional(),
   section: z.string().optional(),
@@ -473,7 +473,6 @@ const Content = React.memo(function Content({
                             <div className="space-y-4">
                               {indices.map((index, idx) => {
                                 const lessonTitle = form.watch(`lessons.${index}.title`) || `Untitled Lesson`;
-                                const lessonType = form.watch(`lessons.${index}.type`) || 'video';
 
                                 return (
                                   <Accordion key={lessonFields[index].id} type="single" collapsible className="border-2 border-gray-100 rounded-lg">
@@ -486,7 +485,7 @@ const Content = React.memo(function Content({
                                           <div className="flex-1 text-left">
                                             <p className="font-semibold text-sm">{lessonTitle}</p>
                                             <p className="text-xs text-muted-foreground mt-0.5">
-                                              {lessonType === 'video' ? '📹 Video' : '📄 Text'} Lesson
+                                              📹 Lesson
                                               {sectionName !== 'Unsectioned Lessons' && ` • in ${sectionName}`}
                                             </p>
                                           </div>
@@ -539,68 +538,47 @@ const Content = React.memo(function Content({
                                                 )}
                                               />
                                             </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                              <div className="grid grid-cols-2 gap-4">
-                                                <FormField
-                                                  control={form.control}
-                                                  name={`lessons.${index}.type`}
-                                                  render={({ field }) => (
-                                                    <FormItem>
-                                                      <FormLabel>Type</FormLabel>
-                                                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                        <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
-                                                        <SelectContent>
-                                                          <SelectItem value="video">Video</SelectItem>
-                                                          <SelectItem value="text">Text</SelectItem>
-                                                        </SelectContent>
-                                                      </Select>
-                                                      <FormMessage />
-                                                    </FormItem>
-                                                  )}
-                                                />
-                                                <FormField
-                                                  control={form.control}
-                                                  name={`lessons.${index}.duration`}
-                                                  render={({ field }) => (
-                                                    <FormItem>
-                                                      <FormLabel>Duration (min)</FormLabel>
-                                                      <FormControl><Input type="number" {...field} /></FormControl>
-                                                      <FormMessage />
-                                                    </FormItem>
-                                                  )}
-                                                />
-                                              </div>
-                                            </div>
 
                                             <FormField
                                               control={form.control}
                                               name={`lessons.${index}.content`}
                                               render={({ field }) => (
                                                 <FormItem>
-                                                  <FormLabel>
-                                                    {form.watch(`lessons.${index}.type`) === 'video' ? 'YouTube Video ID' : 'Lesson Content'}
-                                                  </FormLabel>
+                                                  <FormLabel>YouTube Video ID (Optional)</FormLabel>
                                                   <FormControl>
-                                                    {form.watch(`lessons.${index}.type`) === 'video' ? (
-                                                      <div className="space-y-2">
-                                                        <Input placeholder="e.g., dQw4w9WgXcQ" {...field} />
-                                                        <div className="text-xs text-muted-foreground bg-muted p-3 rounded-md">
-                                                          <p className="font-medium mb-1">How to get the Video ID:</p>
-                                                          <p>1. Go to the YouTube video.</p>
-                                                          <p>2. Look at the URL: <code>youtube.com/watch?v=<b>dQw4w9WgXcQ</b></code></p>
-                                                          <p>3. Copy the text after <code>v=</code> (e.g., <code>dQw4w9WgXcQ</code>).</p>
-                                                        </div>
+                                                    <div className="space-y-2">
+                                                      <Input placeholder="e.g., dQw4w9WgXcQ" {...field} />
+                                                      <div className="text-xs text-muted-foreground bg-muted p-3 rounded-md">
+                                                        <p className="font-medium mb-1">How to get the Video ID:</p>
+                                                        <p>1. Go to the YouTube video.</p>
+                                                        <p>2. Look at the URL: <code>youtube.com/watch?v=<b>dQw4w9WgXcQ</b></code></p>
+                                                        <p>3. Copy the text after <code>v=</code> (e.g., <code>dQw4w9WgXcQ</code>).</p>
+                                                        <p className="mt-2 text-amber-600">💡 Leave empty if this lesson doesn't have a video.</p>
                                                       </div>
-                                                    ) : (
-                                                      <div data-color-mode="light">
-                                                        <MDEditor value={field.value} onChange={field.onChange} height={200} preview="edit" />
-                                                      </div>
-                                                    )}
+                                                    </div>
                                                   </FormControl>
                                                   <FormMessage />
                                                 </FormItem>
                                               )}
                                             />
+
+                                            {/* Only show duration field if video ID is provided */}
+                                            {form.watch(`lessons.${index}.content`) && form.watch(`lessons.${index}.content`).trim() !== '' && (
+                                              <FormField
+                                                control={form.control}
+                                                name={`lessons.${index}.duration`}
+                                                render={({ field }) => (
+                                                  <FormItem>
+                                                    <FormLabel>Video Duration (min)</FormLabel>
+                                                    <FormControl><Input type="number" {...field} /></FormControl>
+                                                    <FormDescription>
+                                                      Estimated duration of the video lesson
+                                                    </FormDescription>
+                                                    <FormMessage />
+                                                  </FormItem>
+                                                )}
+                                              />
+                                            )}
 
                                             <FormField
                                               control={form.control}

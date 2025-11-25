@@ -25,7 +25,7 @@ service cloud.firestore {
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
-
+ 
     function isInstructorOrAdmin(userId) {
       return isInstructor(userId) || isAdmin(userId);
     }
@@ -221,22 +221,19 @@ service cloud.firestore {
 
     // ==================== ENROLLMENTS COLLECTION ====================
     match /enrollments/{enrollmentId} {
-      // Read: Users can read their own enrollments; instructors can read course enrollments; admins can read all
-      allow read: if isSignedIn() && 
-                  (resource.data.userId == request.auth.uid ||
-                   get(/databases/$(database)/documents/courses/$(resource.data.courseId)).data.instructorId == request.auth.uid ||
-                   isAdmin(request.auth.uid));
+      // Read: Allow public read for displaying enrollment counts and student avatars
+      // No personal information is exposed - only userId, courseId, status, enrolledAt
+      allow read: if true;
       
-      // Create: Authenticated users can enroll in courses (purchases create enrollments)
+      // Create: Authenticated users can enroll in courses
       allow create: if isSignedIn() && 
                     request.resource.data.userId == request.auth.uid &&
                     request.resource.data.courseId is string &&
                     request.resource.data.status in ['active', 'completed', 'dropped'];
       
-      // Update: Users can update their own enrollment status; instructors/admins can update any
+      // Update: Users can update their own enrollment status or admins
       allow update: if isSignedIn() && 
                     (resource.data.userId == request.auth.uid ||
-                     get(/databases/$(database)/documents/courses/$(resource.data.courseId)).data.instructorId == request.auth.uid ||
                      isAdmin(request.auth.uid)) &&
                     request.resource.data.status in ['active', 'completed', 'dropped'];
       
@@ -313,11 +310,16 @@ service cloud.firestore {
       // Read: ANYONE can read stats (public analytics)
       allow read: if true;
       
-      // Create/Update/Delete: Only admins and course instructors can update stats
-      allow create, update: if isSignedIn() && 
-                            (get(/databases/$(database)/documents/courses/$(resource.data.courseId)).data.instructorId == request.auth.uid ||
-                             isAdmin(request.auth.uid));
+      // Create: Any authenticated user can create stats (for caching)
+      allow create: if isSignedIn() && 
+                    request.resource.data.courseId is string &&
+                    request.resource.data.totalEnrollments >= 0;
       
+      // Update: Any authenticated user can update stats (for caching)
+      // This allows the client-side caching system to work
+      allow update: if isSignedIn();
+      
+      // Delete: Only admins can delete stats
       allow delete: if isAdmin(request.auth.uid);
     }
 

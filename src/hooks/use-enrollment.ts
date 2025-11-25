@@ -120,8 +120,13 @@ export function useEnrollment() {
         return statsSnap.data().activeCount;
       }
 
-      // Fallback: Try to get from enrollments collection (if user has permission)
-      // This is for cases where stats haven't been updated yet
+      // Fallback: Only query enrollments if we're authenticated and likely have permission
+      if (!user) {
+        // Not authenticated - cannot read enrollments, return 0
+        return 0;
+      }
+
+      // Try to get from enrollments collection (requires proper permissions)
       const enrollmentsRef = collection(firestore, 'enrollments');
       const activeQuery = query(
         enrollmentsRef,
@@ -131,7 +136,7 @@ export function useEnrollment() {
       const activeSnap = await getDocs(activeQuery);
       return activeSnap.size;
     } catch (error) {
-      // If permission denied on enrollments, try stats one more time
+      // If permission denied on enrollments, try stats one more time silently
       try {
         const statsRef = doc(firestore, 'enrollmentStats', courseId);
         const statsSnap = await getDoc(statsRef);
@@ -141,7 +146,10 @@ export function useEnrollment() {
       } catch (statsError) {
         // Both failed, return 0
       }
-      console.error('Error getting active enrollment count:', error);
+      // Only log error if it's not a permission error (to avoid console spam)
+      if (!(error as any)?.code?.includes('permission')) {
+        console.error('Error getting active enrollment count:', error);
+      }
       return 0;
     }
   };
